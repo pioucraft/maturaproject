@@ -56,6 +56,32 @@ void checkCudaError() {
     }
 }
 
+typedef struct MNIST_Image {
+    unsigned char pixels[28][28];
+    unsigned char label;
+} MNIST_Image;
+
+int load_mnist_dataset(const char* images_path, const char* labels_path, MNIST_Image** dataset, int* num_images) {
+    FILE* images_file = fopen(images_path, "rb");
+    FILE* labels_file = fopen(labels_path, "rb");
+
+    unsigned char buffer[4096];
+    int read_bytes = 0;
+
+    int total_bytes_images = 0;
+    int total_bytes_labels = 0;
+    unsigned char* images_buffer;
+    unsigned char* labels_buffer;
+
+    while((read_bytes = fread(buffer, sizeof(unsigned char), 4096, images_file)) > 0) {
+        total_bytes_images += read_bytes;
+        images_buffer = (unsigned char*)realloc(images_buffer, total_bytes_images);
+        memcpy(images_buffer + total_bytes_images - read_bytes, buffer, read_bytes);
+    }
+
+    return 0;
+}
+
 int create_cnn(CNN* cnn, int input_dimensions, int num_layers, Layer layers[]) {
     cnn->num_layers = num_layers;
     cnn->layers = (Layer**)malloc(num_layers * sizeof(Layer*));
