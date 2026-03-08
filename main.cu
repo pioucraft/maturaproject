@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <cuda_runtime.h>
+#include <math.h>
 
 #define DATA_TYPE float
 
@@ -63,6 +64,13 @@ int create_cnn(CNN* cnn, int input_dimensions, int num_layers, Layer layers[]) {
 
         if(layer.layer_type == LAYER_TYPE_CONVOLUTION) {
             cudaMalloc(&(layer.convolution_layer.filter_parameters), layer.convolution_layer.filter_dimensions * layer.convolution_layer.filter_dimensions * sizeof(DATA_TYPE));
+            cudaDeviceSynchronize();
+            for(int j = 0; j < layer.convolution_layer.filter_dimensions * layer.convolution_layer.filter_dimensions; j++) {
+                DATA_TYPE param = (DATA_TYPE)((DATA_TYPE)rand() / RAND_MAX * 0.5 - 0.25);
+                cudaMemcpy(layer.convolution_layer.filter_parameters + j, &param, sizeof(DATA_TYPE), cudaMemcpyHostToDevice);
+            }
+            cudaDeviceSynchronize();
+
         } else if(layer.layer_type == LAYER_TYPE_POOLING) {
             // Nothing to allocate for pooling layer
         } else if(layer.layer_type == LAYER_TYPE_MLP) {
@@ -88,7 +96,15 @@ int create_cnn(CNN* cnn, int input_dimensions, int num_layers, Layer layers[]) {
                 cudaMalloc(&(neuron.weights), num_input * sizeof(DATA_TYPE));
                 cudaDeviceSynchronize();
                 neuron.num_weights = num_input;
+                for(int k = 0; k < num_input; k++) {
+                    DATA_TYPE weight = (DATA_TYPE)((DATA_TYPE)rand() / RAND_MAX * 0.5 - 0.25);
+                    cudaMemcpy(neuron.weights + k, &weight, sizeof(DATA_TYPE), cudaMemcpyHostToDevice);
+                }
+                DATA_TYPE bias = (DATA_TYPE)((DATA_TYPE)rand() / RAND_MAX * 0.5 - 0.25);
+                neuron.bias = bias;
+                cudaDeviceSynchronize();
                 cudaMemcpy(&(layer.mlp_layer.neurons[j]), &neuron, sizeof(Neuron), cudaMemcpyHostToDevice);
+                cudaDeviceSynchronize();
             }
 
         }
@@ -96,6 +112,7 @@ int create_cnn(CNN* cnn, int input_dimensions, int num_layers, Layer layers[]) {
         cudaMalloc(&(cnn->layers[i]), sizeof(Layer));
         cudaDeviceSynchronize();
         cudaMemcpy(cnn->layers[i], &layer, sizeof(Layer), cudaMemcpyHostToDevice);
+        cudaDeviceSynchronize();
     }
     return 0;
 }
