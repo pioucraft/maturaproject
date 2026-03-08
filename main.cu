@@ -48,6 +48,13 @@ typedef struct CNN {
     Layer** layers;
 } CNN;
 
+void checkCudaError() {
+    cudaError_t err = cudaGetLastError();
+    if (err != cudaSuccess) {
+        printf("CUDA error: %s\n", cudaGetErrorString(err));
+    }
+}
+
 int create_cnn(CNN* cnn, int input_dimensions, int num_layers, Layer layers[]) {
     cnn->num_layers = num_layers;
     cnn->layers = (Layer**)malloc(num_layers * sizeof(Layer*));
@@ -149,11 +156,7 @@ int main() {
     };
 
     create_cnn(&cnn, 28, 7, layers);
-    cudaError_t err = cudaGetLastError();
-    if (err != cudaSuccess) {
-        fprintf(stderr, "CUDA error after %s at %s:%d: %s\n", "hi", __FILE__, __LINE__, cudaGetErrorString(err)); \
-    }
-
+    checkCudaError();
 
     return 0;
 }
