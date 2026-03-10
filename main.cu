@@ -46,7 +46,7 @@ typedef struct Layer {
 
 typedef struct CNN {
     int num_layers;
-    Layer** layers;
+    Layer* layers;
 } CNN;
 
 void checkCudaError() {
@@ -57,12 +57,12 @@ void checkCudaError() {
 }
 
 typedef struct MNIST_Image {
-    DATA_TYPE pixels[28][28];
-    DATA_TYPE label[10];
+    DATA_TYPE* pixels; // size 28*28
+    DATA_TYPE* label; // size 10
 } MNIST_Image;
 
 int load_mnist_dataset(const char* images_path, const char* labels_path, MNIST_Image** dataset, int num_images) {
-    cudaMalloc(dataset, num_images * sizeof(MNIST_Image));
+    MNIST_Image* images = (MNIST_Image*)malloc(num_images * sizeof(MNIST_Image));
 
     FILE* images_file = fopen(images_path, "rb");
     FILE* labels_file = fopen(labels_path, "rb");
@@ -89,27 +89,40 @@ int load_mnist_dataset(const char* images_path, const char* labels_path, MNIST_I
 
     for(int i = 0; i < num_images; i++) {
         MNIST_Image c_image;
+
+        DATA_TYPE c_pixels[28 * 28];
+        DATA_TYPE c_label[10];
+
+        unsigned char* pixels = images_buffer + 16 + i * 28 * 28;
         for(int j = 0; j < 28; j++) {
             for(int k = 0; k < 28; k++) {
-                c_image.pixels[j][k] = (DATA_TYPE)((DATA_TYPE)images_buffer[16 + i * 28 * 28 + j * 28 + k] / 255.0f);
+                c_pixels[j * 28 + k] = (DATA_TYPE)((DATA_TYPE)pixels[28 * j + k] / 255.0f);
             }
         }
+
         int label = labels_buffer[8 + i];
         for(int j = 0; j < 10; j++) {
-            c_image.label[j] = (DATA_TYPE)((j == label) ? 1.0f : 0.0f);
+            c_label[j] = (DATA_TYPE)((j == label) ? 1.0f : -1.0f);
         }
-        cudaMemcpy((*dataset) + i, &c_image, sizeof(MNIST_Image), cudaMemcpyHostToDevice);
+
+        cudaMalloc(&(c_image.pixels), 28 * 28 * sizeof(DATA_TYPE));
+        cudaMalloc(&(c_image.label), 10 * sizeof(DATA_TYPE));
+        cudaDeviceSynchronize();
+        cudaMemcpy(c_image.pixels, &c_pixels, 28 * 28 * sizeof(DATA_TYPE), cudaMemcpyHostToDevice);
+        cudaMemcpy(c_image.label, &c_label, 10 * sizeof(DATA_TYPE), cudaMemcpyHostToDevice);
+        cudaDeviceSynchronize();
     }
 
     free(images_buffer);
     free(labels_buffer);
+    printf("Loaded %d images and labels into GPU memory.\n", num_images);
 
     return 0;
 }
 
 int create_cnn(CNN* cnn, int input_dimensions, int num_layers, Layer layers[]) {
     cnn->num_layers = num_layers;
-    cnn->layers = (Layer**)malloc(num_layers * sizeof(Layer*));
+    cnn->layers = (Layer*)malloc(num_layers * sizeof(Layer));
     for (int i = 0; i < num_layers; i++) {
         Layer layer = layers[i];
 
@@ -160,11 +173,12 @@ int create_cnn(CNN* cnn, int input_dimensions, int num_layers, Layer layers[]) {
 
         }
 
-        cudaMalloc(&(cnn->layers[i]), sizeof(Layer));
-        cudaDeviceSynchronize();
-        cudaMemcpy(cnn->layers[i], &layer, sizeof(Layer), cudaMemcpyHostToDevice);
-        cudaDeviceSynchronize();
+        cnn->layers[i] = layer;
     }
+    return 0;
+}
+
+int call_cnn(CNN* cnn, DATA_TYPE* input, int num_inputs) {
     return 0;
 }
 
@@ -228,6 +242,9 @@ int main() {
 
     MNIST_Image* dataset;
     load_mnist_dataset("mnist/train-images.idx3-ubyte", "mnist/train-labels.idx1-ubyte", &dataset, 60000);
+    checkCudaError();
+
+    call_cnn(&cnn, dataset[0].pixels, 28 * 28);
     checkCudaError();
 
     return 0;
