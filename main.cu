@@ -57,11 +57,13 @@ void checkCudaError() {
 }
 
 typedef struct MNIST_Image {
-    unsigned char pixels[28][28];
-    unsigned char label;
+    DATA_TYPE pixels[28][28];
+    DATA_TYPE label[10];
 } MNIST_Image;
 
-int load_mnist_dataset(const char* images_path, const char* labels_path, MNIST_Image** dataset, int* num_images) {
+int load_mnist_dataset(const char* images_path, const char* labels_path, MNIST_Image** dataset, int num_images) {
+    cudaMalloc(dataset, num_images * sizeof(MNIST_Image));
+
     FILE* images_file = fopen(images_path, "rb");
     FILE* labels_file = fopen(labels_path, "rb");
 
@@ -70,14 +72,37 @@ int load_mnist_dataset(const char* images_path, const char* labels_path, MNIST_I
 
     int total_bytes_images = 0;
     int total_bytes_labels = 0;
-    unsigned char* images_buffer;
-    unsigned char* labels_buffer;
+    unsigned char* images_buffer = NULL;
+    unsigned char* labels_buffer = NULL;
 
     while((read_bytes = fread(buffer, sizeof(unsigned char), 4096, images_file)) > 0) {
         total_bytes_images += read_bytes;
         images_buffer = (unsigned char*)realloc(images_buffer, total_bytes_images);
         memcpy(images_buffer + total_bytes_images - read_bytes, buffer, read_bytes);
     }
+
+    while((read_bytes = fread(buffer, sizeof(unsigned char), 4096, labels_file)) > 0) {
+        total_bytes_labels += read_bytes;
+        labels_buffer = (unsigned char*)realloc(labels_buffer, total_bytes_labels);
+        memcpy(labels_buffer + total_bytes_labels - read_bytes, buffer, read_bytes);
+    }
+
+    for(int i = 0; i < num_images; i++) {
+        MNIST_Image c_image;
+        for(int j = 0; j < 28; j++) {
+            for(int k = 0; k < 28; k++) {
+                c_image.pixels[j][k] = (DATA_TYPE)((DATA_TYPE)images_buffer[16 + i * 28 * 28 + j * 28 + k] / 255.0f);
+            }
+        }
+        int label = labels_buffer[8 + i];
+        for(int j = 0; j < 10; j++) {
+            c_image.label[j] = (DATA_TYPE)((j == label) ? 1.0f : 0.0f);
+        }
+        cudaMemcpy((*dataset) + i, &c_image, sizeof(MNIST_Image), cudaMemcpyHostToDevice);
+    }
+
+    free(images_buffer);
+    free(labels_buffer);
 
     return 0;
 }
@@ -199,6 +224,10 @@ int main() {
     };
 
     create_cnn(&cnn, 28, 7, layers);
+    checkCudaError();
+
+    MNIST_Image* dataset;
+    load_mnist_dataset("mnist/train-images.idx3-ubyte", "mnist/train-labels.idx1-ubyte", &dataset, 60000);
     checkCudaError();
 
     return 0;
