@@ -15,7 +15,7 @@ typedef struct Convolution_layer {
     int output_dimensions;
     int filter_dimensions;
     DATA_TYPE* filter_parameters;
-    DATA_TYPE filter_bias;
+    DATA_TYPE* filter_bias;
 } Convolution_layer;
 
 typedef struct Pooling_layer {
@@ -133,6 +133,9 @@ int create_cnn(CNN* cnn, int input_dimensions, int num_layers, Layer layers[]) {
                 DATA_TYPE param = (DATA_TYPE)((DATA_TYPE)rand() / RAND_MAX * 0.5 - 0.25);
                 cudaMemcpy(layer.convolution_layer.filter_parameters + j, &param, sizeof(DATA_TYPE), cudaMemcpyHostToDevice);
             }
+            cudaMalloc(&(layer.convolution_layer.filter_bias), sizeof(DATA_TYPE));
+            DATA_TYPE bias = (DATA_TYPE)((DATA_TYPE)rand() / RAND_MAX * 0.5 - 0.25);
+            cudaMemcpy(layer.convolution_layer.filter_bias, &bias, sizeof(DATA_TYPE), cudaMemcpyHostToDevice);
             cudaDeviceSynchronize();
 
         } else if(layer.layer_type == LAYER_TYPE_POOLING) {
@@ -178,7 +181,23 @@ int create_cnn(CNN* cnn, int input_dimensions, int num_layers, Layer layers[]) {
     return 0;
 }
 
+__global__ void convolution_layer(DATA_TYPE* input, int input_dimensions, DATA_TYPE* filter_parameters, int filter_dimensions, DATA_TYPE* filter_bias, DATA_TYPE* output) {
+    
+}
+
 int call_cnn(CNN* cnn, DATA_TYPE* input, int num_inputs) {
+    DATA_TYPE* current_input = input;
+    int current_input_size = num_inputs;
+
+    for(int i = 0; i < cnn->num_layers; i++) {
+        Layer layer = cnn->layers[i];
+
+        if(layer.layer_type == LAYER_TYPE_CONVOLUTION) {
+            printf("%d", layer.convolution_layer.output_dimensions);
+        } else if(layer.layer_type == LAYER_TYPE_POOLING) {
+        } else if(layer.layer_type == LAYER_TYPE_MLP) {
+        }
+    }
     return 0;
 }
 
