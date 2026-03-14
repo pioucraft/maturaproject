@@ -64,7 +64,7 @@ typedef struct MNIST_Image {
 } MNIST_Image;
 
 int load_mnist_dataset(const char* images_path, const char* labels_path, MNIST_Image** dataset, int num_images) {
-    MNIST_Image* images = (MNIST_Image*)malloc(num_images * sizeof(MNIST_Image));
+    *dataset = (MNIST_Image*)malloc(num_images * sizeof(MNIST_Image));
 
     FILE* images_file = fopen(images_path, "rb");
     FILE* labels_file = fopen(labels_path, "rb");
@@ -89,11 +89,11 @@ int load_mnist_dataset(const char* images_path, const char* labels_path, MNIST_I
         memcpy(labels_buffer + total_bytes_labels - read_bytes, buffer, read_bytes);
     }
 
+    DATA_TYPE* c_pixels = (DATA_TYPE*)malloc(28 * 28 * sizeof(DATA_TYPE));
+    DATA_TYPE* c_label = (DATA_TYPE*)malloc(10 * sizeof(DATA_TYPE));
+
     for(int i = 0; i < num_images; i++) {
         MNIST_Image c_image;
-
-        DATA_TYPE c_pixels[28 * 28];
-        DATA_TYPE c_label[10];
 
         unsigned char* pixels = images_buffer + 16 + i * 28 * 28;
         for(int j = 0; j < 28; j++) {
@@ -109,12 +109,15 @@ int load_mnist_dataset(const char* images_path, const char* labels_path, MNIST_I
 
         cudaMalloc(&(c_image.pixels), 28 * 28 * sizeof(DATA_TYPE));
         cudaMalloc(&(c_image.label), 10 * sizeof(DATA_TYPE));
-        cudaMemcpy(c_image.pixels, &c_pixels, 28 * 28 * sizeof(DATA_TYPE), cudaMemcpyHostToDevice);
-        cudaMemcpy(c_image.label, &c_label, 10 * sizeof(DATA_TYPE), cudaMemcpyHostToDevice);
+        cudaMemcpy(c_image.pixels, c_pixels, 28 * 28 * sizeof(DATA_TYPE), cudaMemcpyHostToDevice);
+        cudaMemcpy(c_image.label, c_label, 10 * sizeof(DATA_TYPE), cudaMemcpyHostToDevice);
+        (*dataset)[i] = c_image;
     }
 
     free(images_buffer);
     free(labels_buffer);
+    free(c_pixels);
+    free(c_label);
     printf("Loaded %d images and labels into GPU memory.\n", num_images);
 
     return 0;
@@ -177,19 +180,34 @@ int create_cnn(CNN* cnn, int input_dimensions, int num_layers, Layer layers[]) {
     return 0;
 }
 
-__global__ void convolution_layer(DATA_TYPE* input, DATA_TYPE* filter_parameters, int filter_dimensions, DATA_TYPE* filter_bias, DATA_TYPE* output) {
-    
+__global__ void call_convolution_layer(DATA_TYPE* input, int input_dimensions, DATA_TYPE* filter_parameters, int filter_dimensions, DATA_TYPE* filter_bias, DATA_TYPE* output) {
+    int output_x = threadIdx.x;
+    int output_y = blockIdx.x;
+
+    for(int i = 0; i < filter_dimensions; i++) {
+        for(int j = 0; j < filter_dimensions; j++) {
+            int input_x = output_x + i;
+            int input_y = output_y + j;
+            output[output_y * blockDim.x + output_x] += input[input_y * input_dimensions + input_x] * filter_parameters[j * filter_dimensions + i];
+        }
+    }
+    output[output_y * blockDim.x + output_x] += *filter_bias;
 }
 
-int call_cnn(CNN* cnn, DATA_TYPE* input, int num_inputs) {
+int call_cnn(CNN* cnn, DATA_TYPE* input, int input_dimensions) {
     DATA_TYPE* current_input = input;
-    int current_input_size = num_inputs;
+    int current_input_dimensions = input_dimensions;
 
     for(int i = 0; i < cnn->num_layers; i++) {
         Layer layer = cnn->layers[i];
 
         if(layer.layer_type == LAYER_TYPE_CONVOLUTION) {
-
+            int output_dimensions = layer.convolution_layer.output_dimensions;
+            call_convolution_layer<<<output_dimensions, output_dimensions>>>(current_input, current_input_dimensions, layer.convolution_layer.filter_parameters, layer.convolution_layer.filter_dimensions, layer.convolution_layer.filter_bias, layer.convolution_layer.output);
+            checkCudaError();
+            cudaDeviceSynchronize();
+            current_input = layer.convolution_layer.output;
+            current_input_dimensions = layer.convolution_layer.output_dimensions;
         } else if(layer.layer_type == LAYER_TYPE_POOLING) {
         } else if(layer.layer_type == LAYER_TYPE_MLP) {
         }
@@ -259,8 +277,8 @@ int main() {
     load_mnist_dataset("mnist/train-images.idx3-ubyte", "mnist/train-labels.idx1-ubyte", &dataset, 60000);
     checkCudaError();
 
-    call_cnn(&cnn, dataset[0].pixels, 28 * 28);
-    checkCudaError();
+
+    call_cnn(&cnn, dataset[0].pixels, 28);
 
     return 0;
 }
