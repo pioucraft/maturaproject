@@ -16,6 +16,8 @@ typedef struct Convolution_layer {
     int filter_dimensions;
     DATA_TYPE* filter_parameters;
     DATA_TYPE* filter_bias;
+
+    DATA_TYPE* output;
 } Convolution_layer;
 
 typedef struct Pooling_layer {
@@ -107,10 +109,8 @@ int load_mnist_dataset(const char* images_path, const char* labels_path, MNIST_I
 
         cudaMalloc(&(c_image.pixels), 28 * 28 * sizeof(DATA_TYPE));
         cudaMalloc(&(c_image.label), 10 * sizeof(DATA_TYPE));
-        cudaDeviceSynchronize();
         cudaMemcpy(c_image.pixels, &c_pixels, 28 * 28 * sizeof(DATA_TYPE), cudaMemcpyHostToDevice);
         cudaMemcpy(c_image.label, &c_label, 10 * sizeof(DATA_TYPE), cudaMemcpyHostToDevice);
-        cudaDeviceSynchronize();
     }
 
     free(images_buffer);
@@ -128,7 +128,6 @@ int create_cnn(CNN* cnn, int input_dimensions, int num_layers, Layer layers[]) {
 
         if(layer.layer_type == LAYER_TYPE_CONVOLUTION) {
             cudaMalloc(&(layer.convolution_layer.filter_parameters), layer.convolution_layer.filter_dimensions * layer.convolution_layer.filter_dimensions * sizeof(DATA_TYPE));
-            cudaDeviceSynchronize();
             for(int j = 0; j < layer.convolution_layer.filter_dimensions * layer.convolution_layer.filter_dimensions; j++) {
                 DATA_TYPE param = (DATA_TYPE)((DATA_TYPE)rand() / RAND_MAX * 0.5 - 0.25);
                 cudaMemcpy(layer.convolution_layer.filter_parameters + j, &param, sizeof(DATA_TYPE), cudaMemcpyHostToDevice);
@@ -136,13 +135,12 @@ int create_cnn(CNN* cnn, int input_dimensions, int num_layers, Layer layers[]) {
             cudaMalloc(&(layer.convolution_layer.filter_bias), sizeof(DATA_TYPE));
             DATA_TYPE bias = (DATA_TYPE)((DATA_TYPE)rand() / RAND_MAX * 0.5 - 0.25);
             cudaMemcpy(layer.convolution_layer.filter_bias, &bias, sizeof(DATA_TYPE), cudaMemcpyHostToDevice);
-            cudaDeviceSynchronize();
+            cudaMalloc(&(layer.convolution_layer.output), layer.convolution_layer.output_dimensions * layer.convolution_layer.output_dimensions * sizeof(DATA_TYPE));
 
         } else if(layer.layer_type == LAYER_TYPE_POOLING) {
             // Nothing to allocate for pooling layer
         } else if(layer.layer_type == LAYER_TYPE_MLP) {
             cudaMalloc(&(layer.mlp_layer.neurons), layer.mlp_layer.num_neurons * sizeof(Neuron));
-            cudaDeviceSynchronize();
 
             int num_input = 0;
             if(i == 0) {
@@ -161,7 +159,6 @@ int create_cnn(CNN* cnn, int input_dimensions, int num_layers, Layer layers[]) {
             for(int j = 0; j < layer.mlp_layer.num_neurons; j++) {
                 Neuron neuron;
                 cudaMalloc(&(neuron.weights), num_input * sizeof(DATA_TYPE));
-                cudaDeviceSynchronize();
                 neuron.num_weights = num_input;
                 for(int k = 0; k < num_input; k++) {
                     DATA_TYPE weight = (DATA_TYPE)((DATA_TYPE)rand() / RAND_MAX * 0.5 - 0.25);
@@ -169,19 +166,18 @@ int create_cnn(CNN* cnn, int input_dimensions, int num_layers, Layer layers[]) {
                 }
                 DATA_TYPE bias = (DATA_TYPE)((DATA_TYPE)rand() / RAND_MAX * 0.5 - 0.25);
                 neuron.bias = bias;
-                cudaDeviceSynchronize();
                 cudaMemcpy(&(layer.mlp_layer.neurons[j]), &neuron, sizeof(Neuron), cudaMemcpyHostToDevice);
-                cudaDeviceSynchronize();
             }
 
         }
 
         cnn->layers[i] = layer;
     }
+    cudaDeviceSynchronize();
     return 0;
 }
 
-__global__ void convolution_layer(DATA_TYPE* input, int input_dimensions, DATA_TYPE* filter_parameters, int filter_dimensions, DATA_TYPE* filter_bias, DATA_TYPE* output) {
+__global__ void convolution_layer(DATA_TYPE* input, DATA_TYPE* filter_parameters, int filter_dimensions, DATA_TYPE* filter_bias, DATA_TYPE* output) {
     
 }
 
@@ -193,7 +189,7 @@ int call_cnn(CNN* cnn, DATA_TYPE* input, int num_inputs) {
         Layer layer = cnn->layers[i];
 
         if(layer.layer_type == LAYER_TYPE_CONVOLUTION) {
-            printf("%d", layer.convolution_layer.output_dimensions);
+
         } else if(layer.layer_type == LAYER_TYPE_POOLING) {
         } else if(layer.layer_type == LAYER_TYPE_MLP) {
         }
