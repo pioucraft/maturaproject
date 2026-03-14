@@ -187,6 +187,7 @@ __global__ void call_convolution_layer(DATA_TYPE* input, int input_dimensions, D
     int output_x = threadIdx.x;
     int output_y = blockIdx.x;
 
+    output[output_y * blockDim.x + output_x] = 0.0f;
     for(int i = 0; i < filter_dimensions; i++) {
         for(int j = 0; j < filter_dimensions; j++) {
             int input_x = output_x + i;
@@ -239,6 +240,7 @@ __global__ void call_mlp_layer(DATA_TYPE* input, int input_size, Neuron* neurons
             output[neuron_index] = 0;
         } else if(isLastLayer) {
             output[neuron_index] = tanh(output[neuron_index]);
+            printf("Output neuron %d: %f\n", neuron_index, output[neuron_index]);
         }
     }
 
@@ -342,6 +344,7 @@ int main() {
 
 
     for(int i = 0; i < 60000; i++) {
+        printf("Processing image %d...\n", i);
         call_cnn(&cnn, dataset[i].pixels, 28);
     }
 
