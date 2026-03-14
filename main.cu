@@ -24,6 +24,8 @@ typedef struct Pooling_layer {
     int output_dimensions;
     int pool_dimensions;
     int pool_type; 
+
+    DATA_TYPE* output;
 } Pooling_layer;
 
 typedef struct Neuron {
@@ -141,7 +143,7 @@ int create_cnn(CNN* cnn, int input_dimensions, int num_layers, Layer layers[]) {
             cudaMalloc(&(layer.convolution_layer.output), layer.convolution_layer.output_dimensions * layer.convolution_layer.output_dimensions * sizeof(DATA_TYPE));
 
         } else if(layer.layer_type == LAYER_TYPE_POOLING) {
-            // Nothing to allocate for pooling layer
+            cudaMalloc(&(layer.pooling_layer.output), layer.pooling_layer.output_dimensions * layer.pooling_layer.output_dimensions * sizeof(DATA_TYPE));
         } else if(layer.layer_type == LAYER_TYPE_MLP) {
             cudaMalloc(&(layer.mlp_layer.neurons), layer.mlp_layer.num_neurons * sizeof(Neuron));
 
@@ -194,6 +196,24 @@ __global__ void call_convolution_layer(DATA_TYPE* input, int input_dimensions, D
     output[output_y * blockDim.x + output_x] += *filter_bias;
 }
 
+__global__ void call_pooling_layer(DATA_TYPE* input, int input_dimensions, int pool_dimensions, int pool_type, DATA_TYPE* output) {
+    int output_x = threadIdx.x;
+    int output_y = blockIdx.x;
+
+    // gonna need to implement POOL_MEAN later...
+    DATA_TYPE max_value = -INFINITY;
+    for(int i = 0; i < pool_dimensions; i++) {
+        for(int j = 0; j < pool_dimensions; j++) {
+            int input_x = output_x * pool_dimensions + i;
+            int input_y = output_y * pool_dimensions + j;
+            if(input[input_y * input_dimensions + input_x] > max_value) {
+                max_value = input[input_y * input_dimensions + input_x];
+            }
+        }
+    }
+    output[output_y * blockDim.x + output_x] = max_value;
+}
+
 int call_cnn(CNN* cnn, DATA_TYPE* input, int input_dimensions) {
     DATA_TYPE* current_input = input;
     int current_input_dimensions = input_dimensions;
@@ -209,6 +229,11 @@ int call_cnn(CNN* cnn, DATA_TYPE* input, int input_dimensions) {
             current_input = layer.convolution_layer.output;
             current_input_dimensions = layer.convolution_layer.output_dimensions;
         } else if(layer.layer_type == LAYER_TYPE_POOLING) {
+            int output_dimensions = layer.pooling_layer.output_dimensions;
+            call_pooling_layer<<<output_dimensions, output_dimensions>>>(current_input, current_input_dimensions, layer.pooling_layer.pool_dimensions, layer.pooling_layer.pool_type, layer.pooling_layer.output);
+            checkCudaError();
+            cudaDeviceSynchronize();
+            current_input_dimensions = layer.pooling_layer.output_dimensions;
         } else if(layer.layer_type == LAYER_TYPE_MLP) {
         }
     }
