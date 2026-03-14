@@ -37,6 +37,8 @@ typedef struct Neuron {
 typedef struct MLP_layer {
     Neuron* neurons;
     int num_neurons;
+
+    DATA_TYPE* output;
 } MLP_layer;
 
 typedef struct Layer {
@@ -173,12 +175,11 @@ int create_cnn(CNN* cnn, int input_dimensions, int num_layers, Layer layers[]) {
                 neuron.bias = bias;
                 cudaMemcpy(&(layer.mlp_layer.neurons[j]), &neuron, sizeof(Neuron), cudaMemcpyHostToDevice);
             }
-
+            cudaMalloc(&(layer.mlp_layer.output), layer.mlp_layer.num_neurons * sizeof(DATA_TYPE));
         }
 
         cnn->layers[i] = layer;
     }
-    cudaDeviceSynchronize();
     return 0;
 }
 
@@ -194,6 +195,9 @@ __global__ void call_convolution_layer(DATA_TYPE* input, int input_dimensions, D
         }
     }
     output[output_y * blockDim.x + output_x] += *filter_bias;
+    if(output[output_y * blockDim.x + output_x] < 0) {
+        output[output_y * blockDim.x + output_x] = 0;
+    }
 }
 
 __global__ void call_pooling_layer(DATA_TYPE* input, int input_dimensions, int pool_dimensions, int pool_type, DATA_TYPE* output) {
@@ -212,11 +216,39 @@ __global__ void call_pooling_layer(DATA_TYPE* input, int input_dimensions, int p
         }
     }
     output[output_y * blockDim.x + output_x] = max_value;
+    if(output[output_y * blockDim.x + output_x] < 0) {
+        output[output_y * blockDim.x + output_x] = 0;
+    }
+}
+
+__global__ void call_mlp_layer(DATA_TYPE* input, int input_size, Neuron* neurons, int num_neurons, DATA_TYPE* output, int isLastLayer) {
+    int neuron_index = blockIdx.x;
+    int weight_index = threadIdx.x;
+    
+    __shared__ DATA_TYPE partials[256]; // Assuming max input size is 256
+    partials[weight_index] = input[weight_index] * neurons[neuron_index].weights[weight_index];
+    __syncthreads();
+
+    if(threadIdx.x == 0) {
+        DATA_TYPE sum = neurons[neuron_index].bias;
+        for(int i = 0; i < input_size; i++) {
+            sum += partials[i];
+        }
+        output[neuron_index] = sum;
+        if(!isLastLayer && output[neuron_index] < 0) {
+            output[neuron_index] = 0;
+        } else if(isLastLayer) {
+            output[neuron_index] = tanh(output[neuron_index]);
+        }
+    }
+
 }
 
 int call_cnn(CNN* cnn, DATA_TYPE* input, int input_dimensions) {
     DATA_TYPE* current_input = input;
     int current_input_dimensions = input_dimensions;
+
+    int current_input_size = 0;
 
     for(int i = 0; i < cnn->num_layers; i++) {
         Layer layer = cnn->layers[i];
@@ -224,17 +256,23 @@ int call_cnn(CNN* cnn, DATA_TYPE* input, int input_dimensions) {
         if(layer.layer_type == LAYER_TYPE_CONVOLUTION) {
             int output_dimensions = layer.convolution_layer.output_dimensions;
             call_convolution_layer<<<output_dimensions, output_dimensions>>>(current_input, current_input_dimensions, layer.convolution_layer.filter_parameters, layer.convolution_layer.filter_dimensions, layer.convolution_layer.filter_bias, layer.convolution_layer.output);
-            checkCudaError();
             cudaDeviceSynchronize();
+            checkCudaError();
             current_input = layer.convolution_layer.output;
             current_input_dimensions = layer.convolution_layer.output_dimensions;
         } else if(layer.layer_type == LAYER_TYPE_POOLING) {
             int output_dimensions = layer.pooling_layer.output_dimensions;
             call_pooling_layer<<<output_dimensions, output_dimensions>>>(current_input, current_input_dimensions, layer.pooling_layer.pool_dimensions, layer.pooling_layer.pool_type, layer.pooling_layer.output);
-            checkCudaError();
             cudaDeviceSynchronize();
+            checkCudaError();
             current_input_dimensions = layer.pooling_layer.output_dimensions;
         } else if(layer.layer_type == LAYER_TYPE_MLP) {
+                current_input_size = current_input_size == 0 ? current_input_dimensions * current_input_dimensions : current_input_size;
+                call_mlp_layer<<<layer.mlp_layer.num_neurons, current_input_size>>>(current_input, current_input_size, layer.mlp_layer.neurons, layer.mlp_layer.num_neurons, layer.mlp_layer.output, i == cnn->num_layers - 1);
+                cudaDeviceSynchronize();
+                checkCudaError();
+                current_input = layer.mlp_layer.output;
+                current_input_size = layer.mlp_layer.num_neurons;
         }
     }
     return 0;
@@ -303,7 +341,9 @@ int main() {
     checkCudaError();
 
 
-    call_cnn(&cnn, dataset[0].pixels, 28);
+    for(int i = 0; i < 60000; i++) {
+        call_cnn(&cnn, dataset[i].pixels, 28);
+    }
 
     return 0;
 }
