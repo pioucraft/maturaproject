@@ -2,6 +2,9 @@
 #include <cuda_runtime.h>
 #include <math.h>
 
+#define CYCLE_COUNT 100
+#define BATCH_SIZE 32
+
 #define DATA_TYPE float
 
 #define POOL_TYPE_MAX 0
@@ -19,7 +22,7 @@ typedef struct Convolution_layer {
 
     DATA_TYPE* output;
     DATA_TYPE* filter_grads;
-    DATA_TYPE* bias_grads;
+    DATA_TYPE* bias_grad;
 } Convolution_layer;
 
 typedef struct Pooling_layer {
@@ -149,6 +152,7 @@ int create_cnn(CNN* cnn, int input_dimensions, int num_layers, Layer layers[]) {
             cudaMemcpy(layer.convolution_layer.filter_bias, &bias, sizeof(DATA_TYPE), cudaMemcpyHostToDevice);
             cudaMalloc(&(layer.convolution_layer.output), layer.convolution_layer.output_dimensions * layer.convolution_layer.output_dimensions * sizeof(DATA_TYPE));
             cudaMalloc(&(layer.convolution_layer.filter_grads), layer.convolution_layer.filter_dimensions * layer.convolution_layer.filter_dimensions * sizeof(DATA_TYPE));
+            cudaMalloc(&(layer.convolution_layer.bias_grad), sizeof(DATA_TYPE));
 
         } else if(layer.layer_type == LAYER_TYPE_POOLING) {
             cudaMalloc(&(layer.pooling_layer.output), layer.pooling_layer.output_dimensions * layer.pooling_layer.output_dimensions * sizeof(DATA_TYPE));
@@ -287,6 +291,49 @@ int call_cnn(CNN* cnn, DATA_TYPE* input, int input_dimensions) {
     return 0;
 }
 
+__global__ void zero_grads_convolution_layer(DATA_TYPE* filter_grads, DATA_TYPE* bias_grad) {
+    int index = threadIdx.x;
+    filter_grads[index] = 0.0f;
+    if(index == 0) {
+        *bias_grad = 0.0f;
+    }
+}
+
+
+__global__ void zero_grads_mlp_layer(Neuron* neurons) {
+    int neuron_index = blockIdx.x;
+    int weight_index = threadIdx.x;
+
+    neurons[neuron_index].weight_grads[weight_index] = 0.0f;
+    if(threadIdx.x == 0) {
+        neurons[neuron_index].bias_grad = 0.0f;
+    }
+}
+
+int zero_grads(CNN* cnn, int input_size) {
+    int current_input_size = input_size;
+
+    for(int i = 0; i < cnn->num_layers; i++) {
+        Layer layer = cnn->layers[i];
+
+        if(layer.layer_type == LAYER_TYPE_CONVOLUTION) {
+
+            int filter_size = layer.convolution_layer.filter_dimensions * layer.convolution_layer.filter_dimensions;
+            zero_grads_convolution_layer<<<1, filter_size>>>(layer.convolution_layer.filter_grads, layer.convolution_layer.bias_grad);
+            current_input_size = layer.convolution_layer.output_dimensions * layer.convolution_layer.output_dimensions;
+
+        } else if(layer.layer_type == LAYER_TYPE_POOLING) {
+            current_input_size = layer.pooling_layer.output_dimensions * layer.pooling_layer.output_dimensions;
+        } else if(layer.layer_type == LAYER_TYPE_MLP) {
+            zero_grads_mlp_layer<<<layer.mlp_layer.num_neurons, current_input_size>>>(layer.mlp_layer.neurons);
+            current_input_size = layer.mlp_layer.num_neurons;
+        }
+    }
+    cudaDeviceSynchronize();
+    checkCudaError();
+    return 0;
+}
+
 int main() {
     printf("Hello, CUDA!\n");
 
@@ -349,10 +396,13 @@ int main() {
     load_mnist_dataset("mnist/train-images.idx3-ubyte", "mnist/train-labels.idx1-ubyte", &dataset, 60000);
     checkCudaError();
 
-
-    for(int i = 0; i < 60000; i++) {
-        printf("Processing image %d...\n", i);
-        call_cnn(&cnn, dataset[i].pixels, 28);
+    for(int i = 0; i < CYCLE_COUNT; i++) {
+        for(int j = 0; j < (60000 - BATCH_SIZE); j += BATCH_SIZE) {
+            zero_grads(&cnn, 28 * 28);
+            for(int k = 0; k < BATCH_SIZE; k++) {
+                int index = j + k;
+            }
+        }
     }
 
     return 0;
