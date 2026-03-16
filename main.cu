@@ -251,7 +251,6 @@ __global__ void call_mlp_layer(DATA_TYPE* input, int input_size, Neuron* neurons
             output[neuron_index] = 0;
         } else if(isLastLayer) {
             output[neuron_index] = tanh(output[neuron_index]);
-            printf("Output neuron %d: %f\n", neuron_index, output[neuron_index]);
         }
     }
 
@@ -334,6 +333,16 @@ int zero_grads(CNN* cnn, int input_size) {
     return 0;
 }
 
+int grad_cnn(CNN* cnn, DATA_TYPE* label) {
+    for(int i = cnn->num_layers - 1; i >= 0; i--) {
+        Layer layer = cnn->layers[i];
+
+        if(layer.layer_type == LAYER_TYPE_MLP) {
+        }
+    }
+    return 0;
+}
+
 int main() {
     printf("Hello, CUDA!\n");
 
@@ -397,10 +406,13 @@ int main() {
     checkCudaError();
 
     for(int i = 0; i < CYCLE_COUNT; i++) {
-        for(int j = 0; j < (60000 - BATCH_SIZE); j += BATCH_SIZE) {
+        printf("Cycle %d\n", i);
+        for(int j = 0; j < (3000 - BATCH_SIZE); j += BATCH_SIZE) {
             zero_grads(&cnn, 28 * 28);
             for(int k = 0; k < BATCH_SIZE; k++) {
                 int index = j + k;
+                call_cnn(&cnn, dataset[index].pixels, 28);
+                grad_cnn(&cnn, dataset[index].label);
             }
         }
     }
