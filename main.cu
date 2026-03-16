@@ -18,6 +18,8 @@ typedef struct Convolution_layer {
     DATA_TYPE* filter_bias;
 
     DATA_TYPE* output;
+    DATA_TYPE* filter_grads;
+    DATA_TYPE* bias_grads;
 } Convolution_layer;
 
 typedef struct Pooling_layer {
@@ -32,6 +34,9 @@ typedef struct Neuron {
     DATA_TYPE* weights;
     int num_weights;
     DATA_TYPE bias;
+
+    DATA_TYPE* weight_grads;
+    DATA_TYPE bias_grad;
 } Neuron;
 
 typedef struct MLP_layer {
@@ -143,6 +148,7 @@ int create_cnn(CNN* cnn, int input_dimensions, int num_layers, Layer layers[]) {
             DATA_TYPE bias = (DATA_TYPE)((DATA_TYPE)rand() / RAND_MAX * 0.5 - 0.25);
             cudaMemcpy(layer.convolution_layer.filter_bias, &bias, sizeof(DATA_TYPE), cudaMemcpyHostToDevice);
             cudaMalloc(&(layer.convolution_layer.output), layer.convolution_layer.output_dimensions * layer.convolution_layer.output_dimensions * sizeof(DATA_TYPE));
+            cudaMalloc(&(layer.convolution_layer.filter_grads), layer.convolution_layer.filter_dimensions * layer.convolution_layer.filter_dimensions * sizeof(DATA_TYPE));
 
         } else if(layer.layer_type == LAYER_TYPE_POOLING) {
             cudaMalloc(&(layer.pooling_layer.output), layer.pooling_layer.output_dimensions * layer.pooling_layer.output_dimensions * sizeof(DATA_TYPE));
@@ -173,6 +179,7 @@ int create_cnn(CNN* cnn, int input_dimensions, int num_layers, Layer layers[]) {
                 }
                 DATA_TYPE bias = (DATA_TYPE)((DATA_TYPE)rand() / RAND_MAX * 0.5 - 0.25);
                 neuron.bias = bias;
+                cudaMalloc(&(neuron.weight_grads), num_input * sizeof(DATA_TYPE));
                 cudaMemcpy(&(layer.mlp_layer.neurons[j]), &neuron, sizeof(Neuron), cudaMemcpyHostToDevice);
             }
             cudaMalloc(&(layer.mlp_layer.output), layer.mlp_layer.num_neurons * sizeof(DATA_TYPE));
