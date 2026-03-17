@@ -333,6 +333,10 @@ int zero_grads(CNN* cnn, int input_size) {
     return 0;
 }
 
+__global__ void grad_mlp_layer(CNN cnn, int layer_index, DATA_TYPE* label) {
+
+}
+
 int grad_cnn(CNN* cnn, DATA_TYPE* label) {
     for(int i = cnn->num_layers - 1; i >= 0; i--) {
         Layer layer = cnn->layers[i];
