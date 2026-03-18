@@ -160,7 +160,7 @@ int create_cnn(CNN* cnn, int input_dimensions, int num_layers, Layer layers[]) {
 
         } else if(layer.layer_type == LAYER_TYPE_POOLING) {
             cudaMalloc(&(layer.pooling_layer.output), layer.pooling_layer.output_dimensions * layer.pooling_layer.output_dimensions * sizeof(DATA_TYPE));
-            cudaMalloc(&(layer.pooling_layer.grads), layer.pooling_layer.output_dimensions * layer.pooling_layer.output_dimensions * sizeof(DATA_TYPE));
+            cudaMalloc(&(layer.pooling_layer.grads), layer.pooling_layer.output_dimensions * layer.pooling_layer.output_dimensions * layer.pooling_layer.pool_dimensions * layer.pooling_layer.pool_dimensions * sizeof(DATA_TYPE));
         } else if(layer.layer_type == LAYER_TYPE_MLP) {
             cudaMalloc(&(layer.mlp_layer.neurons), layer.mlp_layer.num_neurons * sizeof(Neuron));
 
@@ -400,6 +400,12 @@ __global__ void grad_mlp_layer(Layer layer, Layer previous_layer, Layer next_lay
     }
 }
 
+__global__ void grad_pooling_layer(...) {
+    int index = threadIdx.x;
+
+
+}
+
 int grad_cnn(CNN cnn, DATA_TYPE* label, DATA_TYPE* input) {
     for(int i = cnn.num_layers - 1; i >= 0; i--) {
         Layer layer = cnn.layers[i];
@@ -421,6 +427,8 @@ int grad_cnn(CNN cnn, DATA_TYPE* label, DATA_TYPE* input) {
             grad_mlp_layer<<<layer.mlp_layer.num_neurons, num_weights>>>(layer, previous_layer, next_layer, label, input);
             cudaDeviceSynchronize();
             checkCudaError();
+        } else if(layer.layer_type == LAYER_TYPE_POOLING) {
+            grad_pooling_layer<<<1, layer.pooling_layer.output_dimensions * layer.pooling_layer.output_dimensions>>>(...);
         }
     }
     return 0;
@@ -462,7 +470,6 @@ int main() {
     printf("Hello, CUDA!\n");
 
     CNN cnn;
-    /*
     Layer layers[] = {
         {
             .layer_type = LAYER_TYPE_CONVOLUTION,
@@ -504,34 +511,6 @@ int main() {
             .layer_type = LAYER_TYPE_MLP,
             .mlp_layer = {
                 .num_neurons = 30
-            }
-        },
-        {
-            .layer_type = LAYER_TYPE_MLP,
-            .mlp_layer = {
-                .num_neurons = 10
-            }
-        }
-    };
-    */
-
-    Layer layers[] = {
-        {
-            .layer_type = LAYER_TYPE_MLP,
-            .mlp_layer = {
-                .num_neurons = 128
-            }
-        },
-        {
-            .layer_type = LAYER_TYPE_MLP,
-            .mlp_layer = {
-                .num_neurons = 128
-            }
-        },
-        {
-            .layer_type = LAYER_TYPE_MLP,
-            .mlp_layer = {
-                .num_neurons = 128
             }
         },
         {
