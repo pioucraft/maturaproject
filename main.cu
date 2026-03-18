@@ -41,6 +41,8 @@ typedef struct Neuron {
 
     DATA_TYPE* weight_grads;
     DATA_TYPE bias_grad;
+
+    DATA_TYPE grad;
 } Neuron;
 
 typedef struct MLP_layer {
@@ -341,15 +343,67 @@ int zero_grads(CNN* cnn, int input_size) {
     return 0;
 }
 
-__global__ void grad_mlp_layer(CNN cnn, int layer_index, DATA_TYPE* label) {
+__global__ void grad_mlp_layer(CNN cnn, int layer_index, DATA_TYPE* label, DATA_TYPE* input) {
+    int neuron_index = blockIdx.x;
+    int weight_index = threadIdx.x;
 
+    Neuron* neuron = &(cnn.layers[layer_index].mlp_layer.neurons[neuron_index]);
+    /*
+    if(threadIdx.x == 0) {
+        if(layer_index == cnn.num_layers - 1) {
+            DATA_TYPE error = cnn.layers[layer_index].mlp_layer.output[neuron_index] - label[neuron_index];
+            neuron->grad = 2 * error * (1 - cnn.layers[layer_index].mlp_layer.output[neuron_index] * cnn.layers[layer_index].mlp_layer.output[neuron_index]);
+        } else {
+            DATA_TYPE sum = 0.0f;
+            Layer next_layer = cnn.layers[layer_index + 1];
+            // Next layer must be MLP layer
+            for(int i = 0; i < next_layer.mlp_layer.num_neurons; i++) {
+                sum += next_layer.mlp_layer.neurons[i].weights[neuron_index] * next_layer.mlp_layer.neurons[i].grad;
+            }
+            neuron->grad = cnn.layers[layer_index].mlp_layer.output[neuron_index] > 0 ? sum : 0; // ReLU backward
+        }
+        neuron->bias_grad += neuron->grad;
+    }
+    __syncthreads();
+     */
+    
+    if(layer_index == 0) {
+        neuron->weight_grads[weight_index] += neuron->grad * input[weight_index];
+    } else {
+        if(cnn.layers[layer_index - 1].layer_type == LAYER_TYPE_CONVOLUTION) {
+            /*
+            neuron->weight_grads[weight_index] += neuron->grad * cnn.layers[layer_index - 1].convolution_layer.output[weight_index];
+            */
+        } else if(cnn.layers[layer_index - 1].layer_type == LAYER_TYPE_POOLING) {
+            /*
+            neuron->weight_grads[weight_index] += neuron->grad * cnn.layers[layer_index - 1].pooling_layer.output[weight_index];
+            */
+        } else if(cnn.layers[layer_index - 1].layer_type == LAYER_TYPE_MLP) {
+            /*
+            neuron->weight_grads[weight_index] += neuron->grad * cnn.layers[layer_index - 1].mlp_layer.output[weight_index];
+            */
+        }
+    }
 }
 
-int grad_cnn(CNN* cnn, DATA_TYPE* label) {
-    for(int i = cnn->num_layers - 1; i >= 0; i--) {
-        Layer layer = cnn->layers[i];
+int grad_cnn(CNN cnn, DATA_TYPE* label, DATA_TYPE* input) {
+    for(int i = cnn.num_layers - 1; i >= 0; i--) {
+        Layer layer = cnn.layers[i];
 
         if(layer.layer_type == LAYER_TYPE_MLP) {
+            int num_weights = 0;
+            if(i == 0) 
+                num_weights = 28 * 28;
+            if(cnn.layers[i - 1].layer_type == LAYER_TYPE_CONVOLUTION)
+                num_weights = cnn.layers[i - 1].convolution_layer.output_dimensions * cnn.layers[i - 1].convolution_layer.output_dimensions;
+            else if(cnn.layers[i - 1].layer_type == LAYER_TYPE_POOLING)
+                num_weights = cnn.layers[i - 1].pooling_layer.output_dimensions * cnn.layers[i - 1].pooling_layer.output_dimensions;
+            else if(cnn.layers[i - 1].layer_type == LAYER_TYPE_MLP)
+                num_weights = cnn.layers[i - 1].mlp_layer.num_neurons;
+
+            grad_mlp_layer<<<layer.mlp_layer.num_neurons, num_weights>>>(cnn, i, label, input);
+            cudaDeviceSynchronize();
+            checkCudaError();
         }
     }
     return 0;
@@ -424,7 +478,7 @@ int main() {
             for(int k = 0; k < BATCH_SIZE; k++) {
                 int index = j + k;
                 call_cnn(&cnn, dataset[index].pixels, 28);
-                grad_cnn(&cnn, dataset[index].label);
+                grad_cnn(cnn, dataset[index].label, dataset[index].pixels);
             }
         }
     }
