@@ -10,9 +10,10 @@
 #define POOL_TYPE_MAX 0
 #define POOL_TYPE_MEAN 1
 
-#define LAYER_TYPE_CONVOLUTION 0
-#define LAYER_TYPE_POOLING 1
-#define LAYER_TYPE_MLP 2
+#define LAYER_TYPE_NONE 0
+#define LAYER_TYPE_CONVOLUTION 1
+#define LAYER_TYPE_POOLING 2
+#define LAYER_TYPE_MLP 3
 
 typedef struct Convolution_layer {
     int output_dimensions;
@@ -241,7 +242,7 @@ __global__ void call_mlp_layer(DATA_TYPE* input, int input_size, Neuron* neurons
     int neuron_index = blockIdx.x;
     int weight_index = threadIdx.x;
     
-    __shared__ DATA_TYPE partials[256]; // Assuming max input size is 256
+    __shared__ DATA_TYPE partials[1024]; // Assuming max input size is 1024
     partials[weight_index] = input[weight_index] * neurons[neuron_index].weights[weight_index];
     __syncthreads();
 
@@ -257,10 +258,26 @@ __global__ void call_mlp_layer(DATA_TYPE* input, int input_size, Neuron* neurons
             output[neuron_index] = tanh(output[neuron_index]);
         }
     }
-
 }
 
-int call_cnn(CNN* cnn, DATA_TYPE* input, int input_dimensions) {
+__global__ void display_cnn(DATA_TYPE* input, Layer output_layer) {
+    for(int i = 0; i < 28; i++) {
+        for(int j = 0; j < 28; j++) {
+            if(input[i * 28 + j] > 0.5f) {
+                printf("X");
+            } else {
+                printf(" ");
+            }
+        }
+        printf("\n");
+    }
+    for(int i = 0; i < 10; i++) {
+        printf("%d : %.4f\n", i, output_layer.mlp_layer.output[i]);
+    }
+    printf("\n");
+}
+
+int call_cnn(CNN* cnn, DATA_TYPE* input, int input_dimensions, int display_output) {
     DATA_TYPE* current_input = input;
     int current_input_dimensions = input_dimensions;
 
@@ -290,6 +307,12 @@ int call_cnn(CNN* cnn, DATA_TYPE* input, int input_dimensions) {
                 current_input = layer.mlp_layer.output;
                 current_input_size = layer.mlp_layer.num_neurons;
         }
+    }
+
+    if(display_output) {
+        display_cnn<<<1, 1>>>(input, cnn->layers[cnn->num_layers - 1]);
+        cudaDeviceSynchronize();
+        checkCudaError();
     }
     return 0;
 }
@@ -343,45 +366,36 @@ int zero_grads(CNN* cnn, int input_size) {
     return 0;
 }
 
-__global__ void grad_mlp_layer(CNN cnn, int layer_index, DATA_TYPE* label, DATA_TYPE* input) {
+__global__ void grad_mlp_layer(Layer layer, Layer previous_layer, Layer next_layer, DATA_TYPE* label, DATA_TYPE* input) {
     int neuron_index = blockIdx.x;
     int weight_index = threadIdx.x;
 
-    Neuron* neuron = &(cnn.layers[layer_index].mlp_layer.neurons[neuron_index]);
-    /*
+    Neuron* neuron = &(layer.mlp_layer.neurons[neuron_index]);
     if(threadIdx.x == 0) {
-        if(layer_index == cnn.num_layers - 1) {
-            DATA_TYPE error = cnn.layers[layer_index].mlp_layer.output[neuron_index] - label[neuron_index];
-            neuron->grad = 2 * error * (1 - cnn.layers[layer_index].mlp_layer.output[neuron_index] * cnn.layers[layer_index].mlp_layer.output[neuron_index]);
+        if(next_layer.layer_type == LAYER_TYPE_NONE) {
+            DATA_TYPE error = layer.mlp_layer.output[neuron_index] - label[neuron_index];
+            neuron->grad = 2 * error * (1 - layer.mlp_layer.output[neuron_index] * layer.mlp_layer.output[neuron_index]);
         } else {
             DATA_TYPE sum = 0.0f;
-            Layer next_layer = cnn.layers[layer_index + 1];
             // Next layer must be MLP layer
             for(int i = 0; i < next_layer.mlp_layer.num_neurons; i++) {
                 sum += next_layer.mlp_layer.neurons[i].weights[neuron_index] * next_layer.mlp_layer.neurons[i].grad;
             }
-            neuron->grad = cnn.layers[layer_index].mlp_layer.output[neuron_index] > 0 ? sum : 0; // ReLU backward
+            neuron->grad = layer.mlp_layer.output[neuron_index] > 0 ? sum : 0; // ReLU backward
         }
         neuron->bias_grad += neuron->grad;
     }
     __syncthreads();
-     */
     
-    if(layer_index == 0) {
+    if(previous_layer.layer_type == LAYER_TYPE_NONE) {
         neuron->weight_grads[weight_index] += neuron->grad * input[weight_index];
     } else {
-        if(cnn.layers[layer_index - 1].layer_type == LAYER_TYPE_CONVOLUTION) {
-            /*
-            neuron->weight_grads[weight_index] += neuron->grad * cnn.layers[layer_index - 1].convolution_layer.output[weight_index];
-            */
-        } else if(cnn.layers[layer_index - 1].layer_type == LAYER_TYPE_POOLING) {
-            /*
-            neuron->weight_grads[weight_index] += neuron->grad * cnn.layers[layer_index - 1].pooling_layer.output[weight_index];
-            */
-        } else if(cnn.layers[layer_index - 1].layer_type == LAYER_TYPE_MLP) {
-            /*
-            neuron->weight_grads[weight_index] += neuron->grad * cnn.layers[layer_index - 1].mlp_layer.output[weight_index];
-            */
+        if(previous_layer.layer_type == LAYER_TYPE_CONVOLUTION) {
+            neuron->weight_grads[weight_index] += neuron->grad * previous_layer.convolution_layer.output[weight_index];
+        } else if(previous_layer.layer_type == LAYER_TYPE_POOLING) {
+            neuron->weight_grads[weight_index] += neuron->grad * previous_layer.pooling_layer.output[weight_index];
+        } else if(previous_layer.layer_type == LAYER_TYPE_MLP) {
+            neuron->weight_grads[weight_index] += neuron->grad * previous_layer.mlp_layer.output[weight_index];
         }
     }
 }
@@ -401,7 +415,10 @@ int grad_cnn(CNN cnn, DATA_TYPE* label, DATA_TYPE* input) {
             else if(cnn.layers[i - 1].layer_type == LAYER_TYPE_MLP)
                 num_weights = cnn.layers[i - 1].mlp_layer.num_neurons;
 
-            grad_mlp_layer<<<layer.mlp_layer.num_neurons, num_weights>>>(cnn, i, label, input);
+            Layer layer = cnn.layers[i];
+            Layer previous_layer = i > 0 ? cnn.layers[i - 1] : (Layer){.layer_type = LAYER_TYPE_NONE};
+            Layer next_layer = i < cnn.num_layers - 1 ? cnn.layers[i + 1] : (Layer){.layer_type = LAYER_TYPE_NONE};
+            grad_mlp_layer<<<layer.mlp_layer.num_neurons, num_weights>>>(layer, previous_layer, next_layer, label, input);
             cudaDeviceSynchronize();
             checkCudaError();
         }
@@ -409,10 +426,43 @@ int grad_cnn(CNN cnn, DATA_TYPE* label, DATA_TYPE* input) {
     return 0;
 }
 
+__global__ void update_mlp_layer(Neuron* neurons, float learning_rate) {
+    int neuron_index = blockIdx.x;
+    int weight_index = threadIdx.x;
+
+    Neuron* neuron = &(neurons[neuron_index]);
+    neuron->weights[weight_index] -= learning_rate * neuron->weight_grads[weight_index];
+    if(threadIdx.x == 0) {
+        neuron->bias -= learning_rate * neuron->bias_grad;
+    }
+}
+
+int update_cnn(CNN* cnn, float learning_rate) {
+    for(int i = 0; i < cnn->num_layers; i++) {
+        Layer layer = cnn->layers[i];
+        if(layer.layer_type == LAYER_TYPE_MLP) {
+            int num_weights = 0;
+            if(i == 0)                num_weights = 28 * 28;
+            if(cnn->layers[i - 1].layer_type == LAYER_TYPE_CONVOLUTION)
+                num_weights = cnn->layers[i - 1].convolution_layer.output_dimensions * cnn->layers[i - 1].convolution_layer.output_dimensions;
+            else if(cnn->layers[i - 1].layer_type == LAYER_TYPE_POOLING)
+                num_weights = cnn->layers[i - 1].pooling_layer.output_dimensions * cnn->layers[i - 1].pooling_layer.output_dimensions;
+            else if(cnn->layers[i - 1].layer_type == LAYER_TYPE_MLP)
+                num_weights = cnn->layers[i - 1].mlp_layer.num_neurons;
+            update_mlp_layer<<<layer.mlp_layer.num_neurons, num_weights>>>(layer.mlp_layer.neurons, learning_rate);
+        }
+    }
+    cudaDeviceSynchronize();
+    checkCudaError();
+    return 0;
+}
+
+
 int main() {
     printf("Hello, CUDA!\n");
 
     CNN cnn;
+    /*
     Layer layers[] = {
         {
             .layer_type = LAYER_TYPE_CONVOLUTION,
@@ -463,8 +513,36 @@ int main() {
             }
         }
     };
+    */
 
-    create_cnn(&cnn, 28, 7, layers);
+    Layer layers[] = {
+        {
+            .layer_type = LAYER_TYPE_MLP,
+            .mlp_layer = {
+                .num_neurons = 128
+            }
+        },
+        {
+            .layer_type = LAYER_TYPE_MLP,
+            .mlp_layer = {
+                .num_neurons = 128
+            }
+        },
+        {
+            .layer_type = LAYER_TYPE_MLP,
+            .mlp_layer = {
+                .num_neurons = 128
+            }
+        },
+        {
+            .layer_type = LAYER_TYPE_MLP,
+            .mlp_layer = {
+                .num_neurons = 10
+            }
+        }
+    };
+
+    create_cnn(&cnn, 28, 4, layers);
     checkCudaError();
 
     MNIST_Image* dataset;
@@ -473,12 +551,14 @@ int main() {
 
     for(int i = 0; i < CYCLE_COUNT; i++) {
         printf("Cycle %d\n", i);
-        for(int j = 0; j < (3000 - BATCH_SIZE); j += BATCH_SIZE) {
+        call_cnn(&cnn, dataset[59999].pixels, 28, 1);
+        for(int j = 0; j < (30000 - BATCH_SIZE); j += BATCH_SIZE) {
             zero_grads(&cnn, 28 * 28);
             for(int k = 0; k < BATCH_SIZE; k++) {
                 int index = j + k;
-                call_cnn(&cnn, dataset[index].pixels, 28);
+                call_cnn(&cnn, dataset[index].pixels, 28, 0);
                 grad_cnn(cnn, dataset[index].label, dataset[index].pixels);
+                update_cnn(&cnn, 1e-4f);
             }
         }
     }
