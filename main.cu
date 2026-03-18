@@ -31,6 +31,7 @@ typedef struct Pooling_layer {
     int pool_type; 
 
     DATA_TYPE* output;
+    DATA_TYPE* grads;
 } Pooling_layer;
 
 typedef struct Neuron {
@@ -156,6 +157,7 @@ int create_cnn(CNN* cnn, int input_dimensions, int num_layers, Layer layers[]) {
 
         } else if(layer.layer_type == LAYER_TYPE_POOLING) {
             cudaMalloc(&(layer.pooling_layer.output), layer.pooling_layer.output_dimensions * layer.pooling_layer.output_dimensions * sizeof(DATA_TYPE));
+            cudaMalloc(&(layer.pooling_layer.grads), layer.pooling_layer.output_dimensions * layer.pooling_layer.output_dimensions * sizeof(DATA_TYPE));
         } else if(layer.layer_type == LAYER_TYPE_MLP) {
             cudaMalloc(&(layer.mlp_layer.neurons), layer.mlp_layer.num_neurons * sizeof(Neuron));
 
@@ -309,6 +311,11 @@ __global__ void zero_grads_mlp_layer(Neuron* neurons) {
     }
 }
 
+__global__ void zero_grads_pooling_layer(DATA_TYPE* grads) {
+    int index = threadIdx.x;
+    grads[index] = 0.0f;
+}
+
 int zero_grads(CNN* cnn, int input_size) {
     int current_input_size = input_size;
 
@@ -322,6 +329,7 @@ int zero_grads(CNN* cnn, int input_size) {
             current_input_size = layer.convolution_layer.output_dimensions * layer.convolution_layer.output_dimensions;
 
         } else if(layer.layer_type == LAYER_TYPE_POOLING) {
+            zero_grads_pooling_layer<<<1, layer.pooling_layer.output_dimensions * layer.pooling_layer.output_dimensions>>>(layer.pooling_layer.grads);
             current_input_size = layer.pooling_layer.output_dimensions * layer.pooling_layer.output_dimensions;
         } else if(layer.layer_type == LAYER_TYPE_MLP) {
             zero_grads_mlp_layer<<<layer.mlp_layer.num_neurons, current_input_size>>>(layer.mlp_layer.neurons);
