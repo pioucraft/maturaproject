@@ -233,6 +233,7 @@ __global__ void call_pooling_layer(DATA_TYPE* input, int input_dimensions, int p
     int output_x = threadIdx.x % output_dimensions;
     int output_y = threadIdx.x / output_dimensions;
     int channel = blockIdx.x;
+    int channel_offset = channel * input_dimensions * input_dimensions;
 
     // gonna need to implement POOL_MEAN later...
     DATA_TYPE max_value = -INFINITY;
@@ -240,14 +241,14 @@ __global__ void call_pooling_layer(DATA_TYPE* input, int input_dimensions, int p
         for(int j = 0; j < pool_dimensions; j++) {
             int input_x = output_x * pool_dimensions + i;
             int input_y = output_y * pool_dimensions + j;
-            if(input[input_y * input_dimensions + input_x] > max_value) {
-                max_value = input[input_y * input_dimensions + input_x];
+            if(input[channel_offset + input_y * input_dimensions + input_x] > max_value) {
+                max_value = input[channel_offset + input_y * input_dimensions + input_x];
             }
         }
     }
-    output[output_y * blockDim.x + output_x] = max_value;
-    if(output[output_y * blockDim.x + output_x] < 0) {
-        output[output_y * blockDim.x + output_x] = 0;
+    output[channel_offset + output_y * blockDim.x + output_x] = max_value;
+    if(output[channel_offset + output_y * blockDim.x + output_x] < 0) {
+        output[channel_offset + output_y * blockDim.x + output_x] = 0;
     }
 }
 
