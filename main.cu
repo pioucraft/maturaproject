@@ -163,13 +163,13 @@ int create_cnn(CNN* cnn, int input_dimensions, int num_layers, Layer layers[]) {
                 DATA_TYPE bias = (DATA_TYPE)((DATA_TYPE)rand() / RAND_MAX * 0.5 - 0.25);
                 cudaMemcpy(layer.convolution_layer.filter_bias + j, &bias, sizeof(DATA_TYPE), cudaMemcpyHostToDevice);
             }
-            cudaMalloc(&(layer.convolution_layer.output), layer.convolution_layer.output_dimensions * layer.convolution_layer.output_dimensions * sizeof(DATA_TYPE));
-            cudaMalloc(&(layer.convolution_layer.filter_grads), layer.convolution_layer.filter_dimensions * layer.convolution_layer.filter_dimensions * sizeof(DATA_TYPE));
-            cudaMalloc(&(layer.convolution_layer.bias_grad), sizeof(DATA_TYPE));
+            cudaMalloc(&(layer.convolution_layer.output), layer.convolution_layer.out_channels * layer.convolution_layer.output_dimensions * layer.convolution_layer.output_dimensions * sizeof(DATA_TYPE));
+            cudaMalloc(&(layer.convolution_layer.filter_grads), layer.convolution_layer.filters_number * layer.convolution_layer.filter_dimensions * layer.convolution_layer.filter_dimensions * sizeof(DATA_TYPE));
+            cudaMalloc(&(layer.convolution_layer.bias_grad), layer.convolution_layer.filters_number * sizeof(DATA_TYPE));
 
         } else if(layer.layer_type == LAYER_TYPE_POOLING) {
-            cudaMalloc(&(layer.pooling_layer.output), layer.pooling_layer.output_dimensions * layer.pooling_layer.output_dimensions * sizeof(DATA_TYPE));
-            cudaMalloc(&(layer.pooling_layer.grads), layer.pooling_layer.output_dimensions * layer.pooling_layer.output_dimensions * layer.pooling_layer.pool_dimensions * layer.pooling_layer.pool_dimensions * sizeof(DATA_TYPE));
+            cudaMalloc(&(layer.pooling_layer.output), layer.pooling_layer.out_channels * layer.pooling_layer.output_dimensions * layer.pooling_layer.output_dimensions * sizeof(DATA_TYPE));
+            cudaMalloc(&(layer.pooling_layer.grads), layer.pooling_layer.in_channels * layer.pooling_layer.output_dimensions * layer.pooling_layer.output_dimensions * layer.pooling_layer.pool_dimensions * layer.pooling_layer.pool_dimensions * sizeof(DATA_TYPE));
         } else if(layer.layer_type == LAYER_TYPE_MLP) {
             cudaMalloc(&(layer.mlp_layer.neurons), layer.mlp_layer.num_neurons * sizeof(Neuron));
 
@@ -208,28 +208,31 @@ int create_cnn(CNN* cnn, int input_dimensions, int num_layers, Layer layers[]) {
     return 0;
 }
 
-__global__ void call_convolution_layer(DATA_TYPE* input, int input_dimensions, DATA_TYPE* filter_parameters, int filter_dimensions, DATA_TYPE* filter_bias, DATA_TYPE* output, int output_dimensions) {
+__global__ void call_convolution_layer(DATA_TYPE* input, int input_dimensions, DATA_TYPE* filter_parameters, int filter_dimensions, DATA_TYPE* filter_bias, DATA_TYPE* output, int output_dimensions, int in_channels) {
     int output_x = threadIdx.x % output_dimensions;
     int output_y = threadIdx.x / output_dimensions;
+    int in_channel = blockIdx.x / (blockDim.x / in_channels);
     int channel = blockIdx.x;
+    int filter_index = channel % (blockDim.x / in_channels);
 
     output[channel * output_dimensions * output_dimensions + output_y * output_dimensions + output_x] = 0.0f;
     for(int i = 0; i < filter_dimensions; i++) {
         for(int j = 0; j < filter_dimensions; j++) {
             int input_x = output_x + i;
             int input_y = output_y + j;
-            output[channel * output_dimensions * output_dimensions + output_y * output_dimensions + output_x] += input[channel * input_dimensions * input_dimensions + input_y * input_dimensions + input_x] * filter_parameters[j * filter_dimensions + i];
+            output[channel * output_dimensions * output_dimensions + output_y * output_dimensions + output_x] += input[in_channel * input_dimensions * input_dimensions + input_y * input_dimensions + input_x] * filter_parameters[j * filter_dimensions + i + filter_index * filter_dimensions * filter_dimensions];
         }
     }
-    output[output_y * output_dimensions + output_x] += *filter_bias;
-    if(output[output_y * output_dimensions + output_x] < 0) {
-        output[output_y * output_dimensions + output_x] = 0;
+    output[channel * output_dimensions * output_dimensions + output_y * output_dimensions + output_x] += filter_bias[filter_index];
+    if(output[channel * output_dimensions * output_dimensions + output_y * output_dimensions + output_x] < 0) {
+        output[channel * output_dimensions * output_dimensions + output_y * output_dimensions + output_x] = 0;
     }
 }
 
-__global__ void call_pooling_layer(DATA_TYPE* input, int input_dimensions, int pool_dimensions, int pool_type, DATA_TYPE* output) {
-    int output_x = threadIdx.x;
-    int output_y = blockIdx.x;
+__global__ void call_pooling_layer(DATA_TYPE* input, int input_dimensions, int pool_dimensions, int pool_type, DATA_TYPE* output, int output_dimensions) {
+    int output_x = threadIdx.x % output_dimensions;
+    int output_y = threadIdx.x / output_dimensions;
+    int channel = blockIdx.x;
 
     // gonna need to implement POOL_MEAN later...
     DATA_TYPE max_value = -INFINITY;
@@ -298,14 +301,14 @@ int call_cnn(CNN* cnn, DATA_TYPE* input, int input_dimensions, int display_outpu
 
         if(layer.layer_type == LAYER_TYPE_CONVOLUTION) {
             int output_dimensions = layer.convolution_layer.output_dimensions;
-            call_convolution_layer<<<layer.convolution_layer.out_channels, output_dimensions * output_dimensions>>>(current_input, current_input_dimensions, layer.convolution_layer.filter_parameters, layer.convolution_layer.filter_dimensions, layer.convolution_layer.filter_bias, layer.convolution_layer.output, output_dimensions);
+            call_convolution_layer<<<layer.convolution_layer.out_channels, output_dimensions * output_dimensions>>>(current_input, current_input_dimensions, layer.convolution_layer.filter_parameters, layer.convolution_layer.filter_dimensions, layer.convolution_layer.filter_bias, layer.convolution_layer.output, output_dimensions, layer.convolution_layer.in_channels);
             cudaDeviceSynchronize();
             checkCudaError();
             current_input = layer.convolution_layer.output;
             current_input_dimensions = layer.convolution_layer.output_dimensions;
         } else if(layer.layer_type == LAYER_TYPE_POOLING) {
             int output_dimensions = layer.pooling_layer.output_dimensions;
-            call_pooling_layer<<<output_dimensions, output_dimensions>>>(current_input, current_input_dimensions, layer.pooling_layer.pool_dimensions, layer.pooling_layer.pool_type, layer.pooling_layer.output);
+            call_pooling_layer<<<layer.pooling_layer.in_channels, current_input_dimensions * current_input_dimensions>>>(current_input, current_input_dimensions, layer.pooling_layer.pool_dimensions, layer.pooling_layer.pool_type, layer.pooling_layer.output, output_dimensions);
             cudaDeviceSynchronize();
             checkCudaError();
             current_input_dimensions = layer.pooling_layer.output_dimensions;
