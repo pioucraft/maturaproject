@@ -179,9 +179,9 @@ int create_cnn(CNN* cnn, int input_dimensions, int num_layers, Layer layers[]) {
             } else {
                 Layer prev_layer = layers[i - 1];
                 if(prev_layer.layer_type == LAYER_TYPE_CONVOLUTION) {
-                    num_input = prev_layer.convolution_layer.output_dimensions * prev_layer.convolution_layer.output_dimensions;
+                    num_input = prev_layer.convolution_layer.output_dimensions * prev_layer.convolution_layer.output_dimensions * prev_layer.convolution_layer.out_channels;
                 } else if(prev_layer.layer_type == LAYER_TYPE_POOLING) {
-                    num_input = prev_layer.pooling_layer.output_dimensions * prev_layer.pooling_layer.output_dimensions;
+                    num_input = prev_layer.pooling_layer.output_dimensions * prev_layer.pooling_layer.output_dimensions * prev_layer.pooling_layer.out_channels;
                 } else if(prev_layer.layer_type == LAYER_TYPE_MLP) {
                     num_input = prev_layer.mlp_layer.num_neurons;
                 }
@@ -256,7 +256,7 @@ __global__ void call_mlp_layer(DATA_TYPE* input, int input_size, Neuron* neurons
     int neuron_index = blockIdx.x;
     int weight_index = threadIdx.x;
     
-    __shared__ DATA_TYPE partials[1024]; // Assuming max input size is 1024
+    __shared__ DATA_TYPE partials[4096]; // Assuming max input size is 4096
     partials[weight_index] = input[weight_index] * neurons[neuron_index].weights[weight_index];
     __syncthreads();
 
@@ -294,6 +294,7 @@ __global__ void display_cnn(DATA_TYPE* input, Layer output_layer) {
 int call_cnn(CNN* cnn, DATA_TYPE* input, int input_dimensions, int display_output) {
     DATA_TYPE* current_input = input;
     int current_input_dimensions = input_dimensions;
+    int current_input_channels = 1;
 
     int current_input_size = 0;
 
@@ -307,14 +308,16 @@ int call_cnn(CNN* cnn, DATA_TYPE* input, int input_dimensions, int display_outpu
             checkCudaError();
             current_input = layer.convolution_layer.output;
             current_input_dimensions = layer.convolution_layer.output_dimensions;
+            current_input_channels = layer.convolution_layer.out_channels;
         } else if(layer.layer_type == LAYER_TYPE_POOLING) {
             int output_dimensions = layer.pooling_layer.output_dimensions;
             call_pooling_layer<<<layer.pooling_layer.in_channels, current_input_dimensions * current_input_dimensions>>>(current_input, current_input_dimensions, layer.pooling_layer.pool_dimensions, layer.pooling_layer.pool_type, layer.pooling_layer.output, output_dimensions);
             cudaDeviceSynchronize();
             checkCudaError();
             current_input_dimensions = layer.pooling_layer.output_dimensions;
+            current_input_channels = layer.pooling_layer.out_channels;
         } else if(layer.layer_type == LAYER_TYPE_MLP) {
-                current_input_size = current_input_size == 0 ? current_input_dimensions * current_input_dimensions : current_input_size;
+                current_input_size = current_input_size == 0 ? current_input_dimensions * current_input_dimensions * current_input_channels : current_input_size;
                 call_mlp_layer<<<layer.mlp_layer.num_neurons, current_input_size>>>(current_input, current_input_size, layer.mlp_layer.neurons, layer.mlp_layer.num_neurons, layer.mlp_layer.output, i == cnn->num_layers - 1);
                 cudaDeviceSynchronize();
                 checkCudaError();
@@ -527,9 +530,9 @@ int main() {
             .convolution_layer = {
                 .output_dimensions = 26,
                 .filter_dimensions = 3, // 28x28 -> 26x26
-                .filters_number = 32,
+                .filters_number = 8,
                 .in_channels = 1,
-                .out_channels = 32
+                .out_channels = 8
             }
         },
         {
@@ -538,8 +541,8 @@ int main() {
                 .output_dimensions = 13,
                 .pool_dimensions = 2, // 26x26 -> 13x13
                 .pool_type = POOL_TYPE_MAX,
-                .in_channels = 32,
-                .out_channels = 32
+                .in_channels = 8,
+                .out_channels = 8
             }
         },
         {
@@ -548,8 +551,8 @@ int main() {
                 .output_dimensions = 12,
                 .filter_dimensions = 3, // 13x13 -> 12x12
                 .filters_number = 2,
-                .in_channels = 32,
-                .out_channels = 64
+                .in_channels = 8,
+                .out_channels = 16
             }
         },
         {
@@ -558,20 +561,14 @@ int main() {
                 .output_dimensions = 13,
                 .pool_dimensions = 2, // 26x26 -> 13x13
                 .pool_type = POOL_TYPE_MAX,
-                .in_channels = 64,
-                .out_channels = 64
+                .in_channels = 16,
+                .out_channels = 16
             }
         },
         {
             .layer_type = LAYER_TYPE_MLP,
             .mlp_layer = {
-                .num_neurons = 30
-            }
-        },
-        {
-            .layer_type = LAYER_TYPE_MLP,
-            .mlp_layer = {
-                .num_neurons = 30
+                .num_neurons = 128
             }
         },
         {
@@ -582,7 +579,7 @@ int main() {
         }
     };
 
-    create_cnn(&cnn, 28, 4, layers);
+    create_cnn(&cnn, 28, 7, layers);
     checkCudaError();
 
     MNIST_Image* dataset;
