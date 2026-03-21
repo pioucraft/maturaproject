@@ -2,6 +2,7 @@
 #define NN_H
 
 #define LAYER_TYPE_MLP 1
+#define LAYER_TYPE_POOLING 2
 
 #include "utils.h"
 

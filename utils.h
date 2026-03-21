@@ -8,6 +8,10 @@
 
 void checkCudaError();
 
+typedef struct Pooling_Layer {
+    int pool_dimensions;
+} Pooling_Layer;
+
 typedef struct MLP_Layer {
     DATA_TYPE* weights;
     DATA_TYPE* biases;
@@ -50,6 +54,7 @@ typedef struct Layer {
 
     union {
         MLP_Layer mlp_layer;
+        Pooling_Layer pooling_layer;
     } layer;
 } Layer;
 

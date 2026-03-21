@@ -1,7 +1,9 @@
 #include <cuda_runtime.h>
+#include <stdio.h>
 
 #include "mlp.h"
 #include "nn.h"
+#include "pooling.h"
 #include "utils.h"
 
 int create_nn(NN* nn) {
@@ -19,6 +21,15 @@ int create_nn(NN* nn) {
 
             layer->output.d1.output = current_input;
             layer->output.d1.grads = current_input_grads;
+        } else if(layer->layer_type == LAYER_TYPE_POOLING) { // 2d input and 2d output
+            layer->input.d2.input = current_input;
+            layer->input.d2.grads = current_input_grads;
+
+            cudaMalloc(&(current_input), layer->num_out_channels * layer->output.d2.output_dimensions * layer->output.d2.output_dimensions * sizeof(DATA_TYPE));
+            cudaMalloc(&(current_input_grads), layer->num_out_channels * layer->output.d2.output_dimensions * layer->output.d2.output_dimensions * sizeof(DATA_TYPE));
+
+            layer->output.d2.output = current_input;
+            layer->output.d2.grads = current_input_grads;
         }
     }
 
@@ -30,6 +41,8 @@ int create_nn(NN* nn) {
 int call_nn(NN* nn, DATA_TYPE* input) {
     if(nn->layers[0].layer_type == LAYER_TYPE_MLP) { // 1d input and 1d output
         nn->layers[0].input.d1.input = input;
+    } else if(nn->layers[0].layer_type == LAYER_TYPE_POOLING) { // 2d input and 2d output
+        nn->layers[0].input.d2.input = input;
     }
 
     for(int i = 0; i < nn->num_layers; i++) {
@@ -37,6 +50,9 @@ int call_nn(NN* nn, DATA_TYPE* input) {
         if(layer.layer_type == LAYER_TYPE_MLP) {
             int activation_function = (i == nn->num_layers - 1) ? ACTIVATION_FUNCTION_TANH : ACTIVATION_FUNCTION_RELU;
             mlp_forward<<<layer.output.d1.output_size, layer.input.d1.input_size>>>(layer, activation_function);
+            cudaDeviceSynchronize();
+        } else if(layer.layer_type == LAYER_TYPE_POOLING) {
+            pooling_forward<<<layer.num_out_channels, layer.output.d2.output_dimensions * layer.output.d2.output_dimensions>>>(layer);
             cudaDeviceSynchronize();
         }
     }
@@ -88,6 +104,8 @@ int grad_nn(NN* nn, DATA_TYPE* expected_output) {
 
         if(layer.layer_type == LAYER_TYPE_MLP) {
             grad_mlp_layer<<<layer.output.d1.output_size, layer.input.d1.input_size>>>(layer);
+        } else if(layer.layer_type == LAYER_TYPE_POOLING && i != 0) {
+            grad_pooling_layer<<<layer.num_out_channels, layer.output.d2.output_dimensions * layer.output.d2.output_dimensions>>>(layer);
         }
         cudaDeviceSynchronize();
     }

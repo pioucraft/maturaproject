@@ -5,6 +5,7 @@
 #include "mlp.h"
 #include "mnist.h"
 #include "nn.h"
+#include "pooling.h"
 #include "utils.h"
 
 #define BATCH_SIZE 32
@@ -18,15 +19,19 @@ int main() {
     MNIST_Image* dataset;
     load_mnist_dataset("mnist/train-images.idx3-ubyte", "mnist/train-labels.idx1-ubyte", &dataset, DATASET_SIZE);
 
-    Layer* layers = (Layer*)malloc(sizeof(*layers) * 4);
+    MNIST_Image* test_dataset;
+    load_mnist_dataset("mnist/t10k-images.idx3-ubyte", "mnist/t10k-labels.idx1-ubyte", &test_dataset, 10000);
 
-    create_mlp_layer(&(layers[0]), 28 * 28, 128);
-    create_mlp_layer(&(layers[1]), 128, 128);
-    create_mlp_layer(&(layers[2]), 128, 128);
-    create_mlp_layer(&(layers[3]), 128, 10);
+    Layer* layers = (Layer*)malloc(sizeof(*layers) * 5);
+
+    create_pooling_layer(&(layers[0]), 28, 28, 1, 1);
+    create_pooling_layer(&(layers[1]), 28, 14, 2, 1);
+    create_mlp_layer(&(layers[2]), 14*14, 128);
+    create_mlp_layer(&(layers[3]), 128, 128);
+    create_mlp_layer(&(layers[4]), 128, 10);
 
     NN nn = {
-        .num_layers = 4,
+        .num_layers = 5,
         .layers = layers
     };
 
@@ -36,8 +41,10 @@ int main() {
     for(int cycle = 0; cycle < NUM_CYCLES; cycle++) {
         printf("Cycle %d\n", cycle);
 
-        call_nn(&nn, dataset[0].pixels);
-        display_nn_output_mnist(&nn, dataset[0].label);
+        for(int i = 0; i < 10; i++) {
+            call_nn(&nn, test_dataset[i].pixels);
+            display_nn_output_mnist(&nn, test_dataset[i].label);
+        }
 
         for(int i = 0; i < (DATASET_SIZE - BATCH_SIZE); i += BATCH_SIZE) {
             zero_grads_nn(&nn);
