@@ -1,4 +1,6 @@
 #include <cuda_runtime.h>
+#include <device_atomic_functions.h>
+#include <stdio.h>
 
 #include "mlp.h"
 #include "nn.h"
@@ -10,6 +12,16 @@ int create_mlp_layer(Layer* layer, int input_size, int output_size) {
 
     cudaMalloc(&weights, input_size * output_size * sizeof(DATA_TYPE));
     cudaMalloc(&biases, output_size * sizeof(DATA_TYPE));
+
+    for(int i = 0; i < input_size * output_size; i++) {
+        DATA_TYPE weight = (DATA_TYPE)((DATA_TYPE)rand() / RAND_MAX * 0.5 - 0.25);
+        cudaMemcpy(weights + i, &weight, sizeof(DATA_TYPE), cudaMemcpyHostToDevice);
+    }
+
+    for(int i = 0; i < output_size; i++) {
+        DATA_TYPE bias = (DATA_TYPE)((DATA_TYPE)rand() / RAND_MAX * 0.5 - 0.25);
+        cudaMemcpy(biases + i, &bias, sizeof(DATA_TYPE), cudaMemcpyHostToDevice);
+    }
 
     *layer = {
         .layer_type = LAYER_TYPE_MLP,
@@ -33,4 +45,22 @@ int create_mlp_layer(Layer* layer, int input_size, int output_size) {
         }
     };
     return 0;
+}
+
+__global__ void mlp_forward(Layer layer, int activation_function) {
+    int neuron_idx = blockIdx.x;
+    int input_idx = threadIdx.x;
+    int weight_idx = neuron_idx * blockDim.x + threadIdx.x;
+
+    atomicAdd(&(layer.output.d1.output[neuron_idx]), layer.input.d1.input[input_idx] * layer.layer.mlp_layer.weights[weight_idx]);
+    __syncthreads();
+    if(input_idx == 0) {
+        layer.output.d1.output[neuron_idx] += layer.layer.mlp_layer.biases[neuron_idx];
+
+        if(activation_function == ACTIVATION_FUNCTION_RELU && layer.output.d1.output[neuron_idx] < 0) {
+            layer.output.d1.output[neuron_idx] = 0;
+        } else if(activation_function == ACTIVATION_FUNCTION_TANH) {
+            layer.output.d1.output[neuron_idx] = tanh(layer.output.d1.output[neuron_idx]);
+        }
+    }
 }

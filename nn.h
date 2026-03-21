@@ -5,4 +5,8 @@
 
 #include "utils.h"
 
+int create_nn(NN* nn);
+
+int call_nn(NN* nn, DATA_TYPE* input);
+
 #endif

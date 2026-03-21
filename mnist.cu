@@ -1,4 +1,6 @@
 #include <stdio.h>
+#include <stdlib.h>
+#include <cuda_runtime.h>
 
 #include "mnist.h"
 #include "utils.h"
@@ -64,3 +66,30 @@ int load_mnist_dataset(const char* images_path, const char* labels_path, MNIST_I
     return 0;
 }
 
+int display_nn_output_mnist(NN* nn, DATA_TYPE* label) {
+    DATA_TYPE* input_host = (DATA_TYPE*)malloc(28 * 28 * sizeof(DATA_TYPE));
+    DATA_TYPE* output_host = (DATA_TYPE*)malloc(10 * sizeof(DATA_TYPE));
+    DATA_TYPE* label_host = (DATA_TYPE*)malloc(10 * sizeof(DATA_TYPE));
+
+    cudaMemcpy(input_host, nn->layers[0].input.d1.input, 28 * 28 * sizeof(DATA_TYPE), cudaMemcpyDeviceToHost);
+    cudaMemcpy(output_host, nn->layers[nn->num_layers - 1].output.d1.output, 10 * sizeof(DATA_TYPE), cudaMemcpyDeviceToHost);
+    cudaMemcpy(label_host, label, 10 * sizeof(DATA_TYPE), cudaMemcpyDeviceToHost);
+
+    printf("Input:\n");
+    for(int i = 0; i < 28; i++) {
+        for(int j = 0; j < 28; j++) {
+            if(input_host[i * 28 + j] > 0.5f) {
+                printf("X");
+            } else {
+                printf(" ");
+            }        }
+        printf("\n");
+    }
+
+    printf("Output:\n");
+    for(int i = 0; i < 10; i++) {
+        printf("For %d: got %f, expected %f\n", i, output_host[i], label_host[i]);
+    }
+
+    return 0;
+}
