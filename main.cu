@@ -7,11 +7,15 @@
 #include "nn.h"
 #include "utils.h"
 
+#define BATCH_SIZE 32
+#define NUM_CYCLES 100
+#define DATASET_SIZE 3000
+
 int main() {
     printf("Hello, CUDA!\n");
 
     MNIST_Image* dataset;
-    load_mnist_dataset("mnist/train-images.idx3-ubyte", "mnist/train-labels.idx1-ubyte", &dataset, 60000);
+    load_mnist_dataset("mnist/train-images.idx3-ubyte", "mnist/train-labels.idx1-ubyte", &dataset, DATASET_SIZE);
 
     Layer* layers = (Layer*)malloc(sizeof(*layers) * 3);
 
@@ -25,8 +29,22 @@ int main() {
     };
 
     create_nn(&nn);
-    call_nn(&nn, dataset[0].pixels);
-    display_nn_output_mnist(&nn, dataset[0].label);
+
+
+    for(int cycle = 0; cycle < NUM_CYCLES; cycle++) {
+        printf("Cycle %d\n", cycle);
+        for(int i = 0; i < (DATASET_SIZE - BATCH_SIZE); i += BATCH_SIZE) {
+            zero_grads_nn(&nn);
+            for(int j = 0; j < BATCH_SIZE; j++) {
+                call_nn(&nn, dataset[i + j].pixels);
+            }
+        }
+        
+        call_nn(&nn, dataset[420].pixels);
+        display_nn_output_mnist(&nn, dataset[420].label);
+
+    }
+
 
     return 0;
 }

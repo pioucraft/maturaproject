@@ -11,6 +11,9 @@ void checkCudaError();
 typedef struct MLP_Layer {
     DATA_TYPE* weights;
     DATA_TYPE* biases;
+
+    DATA_TYPE* weight_grads;
+    DATA_TYPE* bias_grads;
 } MLP_Layer;
 
 typedef struct Layer {
@@ -23,10 +26,12 @@ typedef struct Layer {
         struct {
             int input_size;
             DATA_TYPE* input;
+            DATA_TYPE* grads;
         } d1;
         struct {
             int input_dimensions;
             DATA_TYPE* input;
+            DATA_TYPE* grads;
         } d2;
     } input;
 
@@ -34,10 +39,12 @@ typedef struct Layer {
         struct {
             int output_size;
             DATA_TYPE* output;
+            DATA_TYPE* grads;
         } d1;
         struct {
             int output_dimensions;
             DATA_TYPE* output;
+            DATA_TYPE* grads;
         } d2;
     } output;
 

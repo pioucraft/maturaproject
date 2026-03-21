@@ -23,6 +23,12 @@ int create_mlp_layer(Layer* layer, int input_size, int output_size) {
         cudaMemcpy(biases + i, &bias, sizeof(DATA_TYPE), cudaMemcpyHostToDevice);
     }
 
+    DATA_TYPE* weight_grads;
+    DATA_TYPE* bias_grads;
+
+    cudaMalloc(&weight_grads, input_size * output_size * sizeof(DATA_TYPE));
+    cudaMalloc(&bias_grads, output_size * sizeof(DATA_TYPE));
+
     *layer = {
         .layer_type = LAYER_TYPE_MLP,
         .num_in_channels = 1,
@@ -40,7 +46,10 @@ int create_mlp_layer(Layer* layer, int input_size, int output_size) {
         .layer = {
             .mlp_layer = {
                 .weights = weights,
-                .biases = biases
+                .biases = biases,
+
+                .weight_grads = weight_grads,
+                .bias_grads = bias_grads
             }
         }
     };
@@ -52,15 +61,28 @@ __global__ void mlp_forward(Layer layer, int activation_function) {
     int input_idx = threadIdx.x;
     int weight_idx = neuron_idx * blockDim.x + threadIdx.x;
 
+    if(input_idx == 0) {
+        layer.output.d1.output[neuron_idx] = layer.layer.mlp_layer.biases[neuron_idx];
+    }
+    __syncthreads();
     atomicAdd(&(layer.output.d1.output[neuron_idx]), layer.input.d1.input[input_idx] * layer.layer.mlp_layer.weights[weight_idx]);
     __syncthreads();
     if(input_idx == 0) {
-        layer.output.d1.output[neuron_idx] += layer.layer.mlp_layer.biases[neuron_idx];
-
         if(activation_function == ACTIVATION_FUNCTION_RELU && layer.output.d1.output[neuron_idx] < 0) {
             layer.output.d1.output[neuron_idx] = 0;
         } else if(activation_function == ACTIVATION_FUNCTION_TANH) {
             layer.output.d1.output[neuron_idx] = tanh(layer.output.d1.output[neuron_idx]);
         }
     }
+}
+
+
+__global__ void zero_grads_mlp_layer(Layer layer) {
+    int neuron_idx = blockIdx.x;
+    int weight_idx = neuron_idx * blockDim.x + threadIdx.x;
+
+    if(threadIdx.x == 0) {
+        layer.layer.mlp_layer.bias_grads[neuron_idx] = 0.0f;
+    }
+    layer.layer.mlp_layer.weight_grads[weight_idx] = 0.0f;
 }

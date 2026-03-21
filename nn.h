@@ -9,4 +9,6 @@ int create_nn(NN* nn);
 
 int call_nn(NN* nn, DATA_TYPE* input);
 
+int zero_grads_nn(NN* nn);
+
 #endif
