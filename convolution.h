@@ -7,7 +7,7 @@
 #include "utils.h"
 
 
-int create_convolution_layer(Layer* layer, int input_size, int output_size, int filter_dimensions, int num_filters, int in_channels, int out_channels);
+int create_convolution_layer(Layer* layer, int input_dimensions, int output_dimensions, int filter_dimensions, int num_filters, int in_channels, int out_channels);
 
 __global__ void convolution_forward(Layer layer);
 

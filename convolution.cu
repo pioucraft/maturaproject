@@ -7,7 +7,7 @@
 #include "nn.h"
 #include "utils.h"
 
-int create_convolution_layer(Layer* layer, int input_size, int output_size, int filter_dimensions, int num_filters, int in_channels, int out_channels) {
+int create_convolution_layer(Layer* layer, int input_dimensions, int output_dimensions, int filter_dimensions, int num_filters, int in_channels, int out_channels) {
     DATA_TYPE* filters;
     DATA_TYPE* biases;
 
@@ -36,12 +36,12 @@ int create_convolution_layer(Layer* layer, int input_size, int output_size, int 
         .num_out_channels = out_channels,
         .input = {
             .d2 = {
-                .input_dimensions = input_size
+                .input_dimensions = input_dimensions 
             }
         },
         .output = {
             .d2 = {
-                .output_dimensions = output_size
+                .output_dimensions = output_dimensions
             }
         },
         .layer = {
