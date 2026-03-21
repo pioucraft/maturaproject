@@ -82,7 +82,40 @@ __global__ void zero_grads_mlp_layer(Layer layer) {
     int weight_idx = neuron_idx * blockDim.x + threadIdx.x;
 
     if(threadIdx.x == 0) {
-        layer.layer.mlp_layer.bias_grads[neuron_idx] = 0.0f;
+        layer.layer.mlp_layer.bias_grads[neuron_idx] = (DATA_TYPE)0.0;
     }
-    layer.layer.mlp_layer.weight_grads[weight_idx] = 0.0f;
+    layer.layer.mlp_layer.weight_grads[weight_idx] = (DATA_TYPE)0.0;
+}
+
+__global__ void grad_mlp_layer(Layer layer) {
+    // assume that input and hidden layers always use ReLU activation function
+    int neuron_idx = blockIdx.x;
+    int input_idx = threadIdx.x;
+    int weight_idx = neuron_idx * blockDim.x + threadIdx.x;
+
+    if(threadIdx.x == 0) {
+        layer.layer.mlp_layer.bias_grads[neuron_idx] += layer.output.d1.grads[neuron_idx];
+    }
+    if(layer.input.d1.grads != NULL && blockIdx.x == 0) {
+        layer.input.d1.grads[input_idx] = (DATA_TYPE)0.0;
+    }
+    __syncthreads();
+    layer.layer.mlp_layer.weight_grads[weight_idx] += layer.output.d1.grads[neuron_idx] * layer.input.d1.input[input_idx];
+
+    if(layer.input.d1.grads != NULL) {
+        if(layer.input.d1.input[input_idx] > 0) {
+            atomicAdd(&(layer.input.d1.grads[input_idx]), layer.output.d1.grads[neuron_idx] * layer.layer.mlp_layer.weights[weight_idx]);
+        }
+    }
+}
+
+__global__ void update_mlp_layer(Layer layer, DATA_TYPE learning_rate) {
+    int neuron_idx = blockIdx.x;
+    int input_idx = threadIdx.x;
+    int weight_idx = neuron_idx * blockDim.x + threadIdx.x;
+
+    if(threadIdx.x == 0) {
+        layer.layer.mlp_layer.biases[neuron_idx] -= learning_rate * layer.layer.mlp_layer.bias_grads[neuron_idx];
+    }
+    layer.layer.mlp_layer.weights[weight_idx] -= learning_rate * layer.layer.mlp_layer.weight_grads[weight_idx];
 }

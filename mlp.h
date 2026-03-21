@@ -12,4 +12,8 @@ __global__ void mlp_forward(Layer layer, int activation_function);
 
 __global__ void zero_grads_mlp_layer(Layer layer);
 
+__global__ void grad_mlp_layer(Layer layer);
+
+__global__ void update_mlp_layer(Layer layer, DATA_TYPE learning_rate);
+
 #endif

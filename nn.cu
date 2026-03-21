@@ -49,7 +49,7 @@ int call_nn(NN* nn, DATA_TYPE* input) {
 __global__ void zero_grads_layer_1d_output(Layer layer) {
     int output_idx = blockIdx.x * blockDim.x + threadIdx.x;
 
-    layer.output.d1.grads[output_idx] = 0.0f;
+    layer.output.d1.grads[output_idx] = (DATA_TYPE)0.0;
 }
 
 int zero_grads_nn(NN* nn) {
@@ -61,6 +61,48 @@ int zero_grads_nn(NN* nn) {
 
         if(layer.layer_type == LAYER_TYPE_MLP) {
             zero_grads_mlp_layer<<<layer.output.d1.output_size, layer.input.d1.input_size>>>(layer);
+        }
+    }
+
+    cudaDeviceSynchronize();
+    checkCudaError();
+
+    return 0;
+}
+
+__global__ void grad_error(Layer output_layer, DATA_TYPE* expected_output) {
+    // We assume that the output layer is always an MLP layer with tanh activation function
+    int output_idx = threadIdx.x;
+    DATA_TYPE error_grad = 2 * (output_layer.output.d1.output[output_idx] - expected_output[output_idx]);
+    DATA_TYPE grad = error_grad * (1 - output_layer.output.d1.output[output_idx] * output_layer.output.d1.output[output_idx]);
+    output_layer.output.d1.grads[output_idx] = grad;
+}
+
+int grad_nn(NN* nn, DATA_TYPE* expected_output) {
+    for(int i = nn->num_layers - 1; i >= 0; i--) {
+        Layer layer = nn->layers[i];
+        if(i == nn->num_layers - 1) {
+            grad_error<<<1, layer.output.d1.output_size>>>(layer, expected_output);
+        }
+        cudaDeviceSynchronize();
+
+        if(layer.layer_type == LAYER_TYPE_MLP) {
+            grad_mlp_layer<<<layer.output.d1.output_size, layer.input.d1.input_size>>>(layer);
+        }
+        cudaDeviceSynchronize();
+    }
+
+    checkCudaError();
+
+    return 0;
+}
+
+
+int update_nn(NN* nn, DATA_TYPE learning_rate) {
+    for(int i = 0; i < nn->num_layers; i++) {
+        Layer layer = nn->layers[i];
+        if(layer.layer_type == LAYER_TYPE_MLP) {
+            update_mlp_layer<<<layer.output.d1.output_size, layer.input.d1.input_size>>>(layer, learning_rate);
         }
     }
 
