@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <cuda_runtime.h>
 
+#include "convolution.h"
 #include "mlp.h"
 #include "mnist.h"
 #include "nn.h"
@@ -24,9 +25,9 @@ int main() {
 
     Layer* layers = (Layer*)malloc(sizeof(*layers) * 5);
 
-    create_pooling_layer(&(layers[0]), 28, 28, 1, 1);
-    create_pooling_layer(&(layers[1]), 28, 14, 2, 1);
-    create_mlp_layer(&(layers[2]), 14*14, 128);
+    create_convolution_layer(&(layers[0]), 28, 27, 3, 8, 1, 8);
+    create_pooling_layer(&(layers[1]), 27, 9, 3, 8); // 27/3 = 9
+    create_mlp_layer(&(layers[2]), 9*9*8, 128);
     create_mlp_layer(&(layers[3]), 128, 128);
     create_mlp_layer(&(layers[4]), 128, 10);
 
@@ -42,8 +43,8 @@ int main() {
         printf("Cycle %d\n", cycle);
 
         for(int i = 0; i < 10; i++) {
-            call_nn(&nn, test_dataset[i].pixels);
-            display_nn_output_mnist(&nn, test_dataset[i].label);
+            call_nn(&nn, dataset[i].pixels);
+            display_nn_output_mnist(&nn, dataset[i].label);
         }
 
         for(int i = 0; i < (DATASET_SIZE - BATCH_SIZE); i += BATCH_SIZE) {

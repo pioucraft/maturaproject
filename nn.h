@@ -3,6 +3,7 @@
 
 #define LAYER_TYPE_MLP 1
 #define LAYER_TYPE_POOLING 2
+#define LAYER_TYPE_CONVOLUTION 3
 
 #include "utils.h"
 

@@ -8,6 +8,17 @@
 
 void checkCudaError();
 
+typedef struct Convolution_Layer {
+    int filter_dimensions;
+    int filters_num;
+
+    DATA_TYPE* filters;
+    DATA_TYPE* biases;
+
+    DATA_TYPE* filter_grads;
+    DATA_TYPE* bias_grads;
+} Convolution_Layer;
+
 typedef struct Pooling_Layer {
     int pool_dimensions;
 } Pooling_Layer;
@@ -55,6 +66,7 @@ typedef struct Layer {
     union {
         MLP_Layer mlp_layer;
         Pooling_Layer pooling_layer;
+        Convolution_Layer convolution_layer;
     } layer;
 } Layer;
 

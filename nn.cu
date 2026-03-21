@@ -1,6 +1,7 @@
 #include <cuda_runtime.h>
 #include <stdio.h>
 
+#include "convolution.h"
 #include "mlp.h"
 #include "nn.h"
 #include "pooling.h"
@@ -21,7 +22,7 @@ int create_nn(NN* nn) {
 
             layer->output.d1.output = current_input;
             layer->output.d1.grads = current_input_grads;
-        } else if(layer->layer_type == LAYER_TYPE_POOLING) { // 2d input and 2d output
+        } else if(layer->layer_type == LAYER_TYPE_POOLING || layer->layer_type == LAYER_TYPE_CONVOLUTION) { // 2d input and 2d output
             layer->input.d2.input = current_input;
             layer->input.d2.grads = current_input_grads;
 
@@ -41,7 +42,7 @@ int create_nn(NN* nn) {
 int call_nn(NN* nn, DATA_TYPE* input) {
     if(nn->layers[0].layer_type == LAYER_TYPE_MLP) { // 1d input and 1d output
         nn->layers[0].input.d1.input = input;
-    } else if(nn->layers[0].layer_type == LAYER_TYPE_POOLING) { // 2d input and 2d output
+    } else if(nn->layers[0].layer_type == LAYER_TYPE_POOLING || nn->layers[0].layer_type == LAYER_TYPE_CONVOLUTION) { // 2d input and 2d output
         nn->layers[0].input.d2.input = input;
     }
 
@@ -53,6 +54,9 @@ int call_nn(NN* nn, DATA_TYPE* input) {
             cudaDeviceSynchronize();
         } else if(layer.layer_type == LAYER_TYPE_POOLING) {
             pooling_forward<<<layer.num_out_channels, layer.output.d2.output_dimensions * layer.output.d2.output_dimensions>>>(layer);
+            cudaDeviceSynchronize();
+        } else if(layer.layer_type == LAYER_TYPE_CONVOLUTION) {
+            convolution_forward<<<layer.num_out_channels, layer.output.d2.output_dimensions * layer.output.d2.output_dimensions>>>(layer);
             cudaDeviceSynchronize();
         }
     }
@@ -68,15 +72,25 @@ __global__ void zero_grads_layer_1d_output(Layer layer) {
     layer.output.d1.grads[output_idx] = (DATA_TYPE)0.0;
 }
 
+__global__ void zero_grads_layer_2d_output(Layer layer) {
+    int output_idx = blockIdx.x * blockDim.x + threadIdx.x;
+
+    layer.output.d2.grads[output_idx] = (DATA_TYPE)0.0;
+}
+
 int zero_grads_nn(NN* nn) {
     for(int i = 0; i < nn->num_layers; i++) {
         Layer layer = nn->layers[i];
         if(layer.layer_type == LAYER_TYPE_MLP) { // 1d input and 1d output
             zero_grads_layer_1d_output<<<layer.num_out_channels, layer.output.d1.output_size>>>(layer);
+        } else if(layer.layer_type == LAYER_TYPE_POOLING || layer.layer_type == LAYER_TYPE_CONVOLUTION) { // 2d input and 2d output
+            zero_grads_layer_2d_output<<<layer.num_out_channels, layer.output.d2.output_dimensions * layer.output.d2.output_dimensions>>>(layer);
         }
 
         if(layer.layer_type == LAYER_TYPE_MLP) {
             zero_grads_mlp_layer<<<layer.output.d1.output_size, layer.input.d1.input_size>>>(layer);
+        } else if(layer.layer_type == LAYER_TYPE_CONVOLUTION) {
+            zero_grads_convolution_layer<<<layer.num_out_channels, layer.layer.convolution_layer.filters_num * layer.layer.convolution_layer.filter_dimensions * layer.layer.convolution_layer.filter_dimensions>>>(layer);
         }
     }
 
@@ -104,8 +118,10 @@ int grad_nn(NN* nn, DATA_TYPE* expected_output) {
 
         if(layer.layer_type == LAYER_TYPE_MLP) {
             grad_mlp_layer<<<layer.output.d1.output_size, layer.input.d1.input_size>>>(layer);
-        } else if(layer.layer_type == LAYER_TYPE_POOLING && i != 0) {
+        } else if(layer.layer_type == LAYER_TYPE_POOLING) {
             grad_pooling_layer<<<layer.num_out_channels, layer.output.d2.output_dimensions * layer.output.d2.output_dimensions>>>(layer);
+        } else if(layer.layer_type == LAYER_TYPE_CONVOLUTION) {
+            grad_convolution_layer<<<layer.num_out_channels, layer.output.d2.output_dimensions * layer.output.d2.output_dimensions>>>(layer);
         }
         cudaDeviceSynchronize();
     }
@@ -121,6 +137,8 @@ int update_nn(NN* nn, DATA_TYPE learning_rate) {
         Layer layer = nn->layers[i];
         if(layer.layer_type == LAYER_TYPE_MLP) {
             update_mlp_layer<<<layer.output.d1.output_size, layer.input.d1.input_size>>>(layer, learning_rate);
+        } else if(layer.layer_type == LAYER_TYPE_CONVOLUTION) {
+            update_convolution_layer<<<layer.num_out_channels, layer.layer.convolution_layer.filters_num * layer.layer.convolution_layer.filter_dimensions * layer.layer.convolution_layer.filter_dimensions>>>(layer, learning_rate);
         }
     }
 

@@ -64,6 +64,9 @@ __global__ void grad_pooling_layer(Layer layer) {
     int channel_output_offset = channel * layer.output.d2.output_dimensions * layer.output.d2.output_dimensions;
 
 
+    if(layer.output.d2.grads == NULL) {
+        return;
+    }
     for(int x = 0; x < layer.layer.pooling_layer.pool_dimensions; x++) {
         for(int y = 0; y < layer.layer.pooling_layer.pool_dimensions; y++) {
 
