@@ -10,8 +10,8 @@
 #include "utils.h"
 
 #define BATCH_SIZE 32
-#define NUM_CYCLES 100
-#define DATASET_SIZE 60000
+#define NUM_CYCLES 1000
+#define DATASET_SIZE 3000
 #define LEARNING_RATE 1e-3
 
 int main() {

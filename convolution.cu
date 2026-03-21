@@ -84,6 +84,12 @@ __global__ void convolution_forward(Layer layer) {
             layer.output.d2.output[output_location] += input_value * filter_value;
         }
     }
+
+    __syncthreads();
+
+    if(layer.output.d2.output[output_location] < 0) {
+        layer.output.d2.output[output_location] = 0;
+    }
 }
 
 
@@ -119,9 +125,12 @@ __global__ void grad_convolution_layer(Layer layer) {
             DATA_TYPE input_value = layer.input.d2.input[input_channel_offset + input_y * layer.input.d2.input_dimensions + input_x];
             DATA_TYPE grad_value = layer.output.d2.grads[output_channel_offset + output_y * layer.output.d2.output_dimensions + output_x];
 
-            atomicAdd(&(layer.layer.convolution_layer.filter_grads[filter_channel_offset + y * layer.layer.convolution_layer.filter_dimensions + x]), input_value * grad_value);
+            atomicAdd(&(layer.layer.convolution_layer.filter_grads[filter_channel_offset + y * layer.layer.convolution_layer.filter_dimensions + x]), grad_value * input_value);
+
         }
     }
+
+
 }
 
 __global__ void update_convolution_layer(Layer layer, float learning_rate) {

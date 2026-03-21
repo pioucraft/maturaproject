@@ -91,5 +91,19 @@ int display_nn_output_mnist(NN* nn, DATA_TYPE* label) {
         printf("For %d: got %f, expected %f\n", i, output_host[i], label_host[i]);
     }
 
+    // print the first layer's fiter values
+    printf("First layer filters:\n");
+    for(int i = 0; i < 8; i++) {
+        printf("Filter %d:\n", i);
+        DATA_TYPE* filter_host = (DATA_TYPE*)malloc(3 * 3 * sizeof(DATA_TYPE));
+        cudaMemcpy(filter_host, nn->layers[0].layer.convolution_layer.filters + i * 3 * 3, 3 * 3 * sizeof(DATA_TYPE), cudaMemcpyDeviceToHost);
+        for(int j = 0; j < 3; j++) {
+            for(int k = 0; k < 3; k++) {
+                printf("%f ", filter_host[j * 3 + k]);
+            }
+            printf("\n");
+        }
+        free(filter_host);
+    }
     return 0;
 }
