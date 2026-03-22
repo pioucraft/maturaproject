@@ -24,16 +24,15 @@ int main() {
     MNIST_Image* test_dataset;
     load_mnist_dataset("mnist/t10k-images.idx3-ubyte", "mnist/t10k-labels.idx1-ubyte", &test_dataset, TEST_DATASET_SIZE);
 
-    Layer* layers = (Layer*)malloc(sizeof(*layers) * 5);
+    Layer* layers = (Layer*)malloc(sizeof(*layers) * 4);
 
-    create_convolution_layer(&(layers[0]), 28, 27, 3, 8, 1, 8);
-    create_pooling_layer(&(layers[1]), 27, 9, 3, 8); // 27/3 = 9
-    create_mlp_layer(&(layers[2]), 9*9*8, 128);
-    create_mlp_layer(&(layers[3]), 128, 128);
-    create_mlp_layer(&(layers[4]), 128, 10);
+    create_mlp_layer(&(layers[0]), 28*28, 128);
+    create_mlp_layer(&(layers[1]), 128, 128);
+    create_mlp_layer(&(layers[2]), 128, 128);
+    create_mlp_layer(&(layers[3]), 128, 10);
 
     NN nn = {
-        .num_layers = 5,
+        .num_layers = 4,
         .layers = layers
     };
 
@@ -79,7 +78,7 @@ int main() {
         for(int i = 0; i < (DATASET_SIZE - BATCH_SIZE); i += BATCH_SIZE) {
             zero_grads_nn(&nn);
             for(int j = 0; j < BATCH_SIZE; j++) {
-                if((i + j) % 1000 == 0) {
+                if((i + j) % 10000 == 0) {
                     printf("Processing image %d\n", i + j);
                 }
                 call_nn(&nn, dataset[i + j].pixels);
