@@ -13,7 +13,7 @@
 #define NUM_CYCLES 100
 #define DATASET_SIZE 60000
 #define TEST_DATASET_SIZE 10000
-#define LEARNING_RATE 5e-5
+#define LEARNING_RATE 1e-3
 
 int main() {
     printf("Hello, CUDA!\n");
@@ -26,11 +26,11 @@ int main() {
 
     Layer* layers = (Layer*)malloc(sizeof(*layers) * 6);
 
-    create_convolution_layer(&(layers[0]), 28, 26, 3, 16, 1, 16);
-    create_pooling_layer(&(layers[1]), 26, 13, 2, 16);
-    create_convolution_layer(&(layers[2]), 13, 10, 4, 32, 16, 32);
-    create_pooling_layer(&(layers[3]), 10, 5, 2, 32);
-    create_mlp_layer(&(layers[4]), 5*5*32, 128);
+    create_convolution_layer(&(layers[0]), 28, 26, 3, 3, 1, 3);
+    create_pooling_layer(&(layers[1]), 26, 13, 2, 3);
+    create_convolution_layer(&(layers[2]), 13, 10, 4, 6, 3, 6);
+    create_pooling_layer(&(layers[3]), 10, 5, 2, 6);
+    create_mlp_layer(&(layers[4]), 5*5*6, 128);
     create_mlp_layer(&(layers[5]), 128, 10);
 
     NN nn = {

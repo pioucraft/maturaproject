@@ -10,6 +10,8 @@ int create_pooling_layer(Layer* layer, int input_dimensions, int output_dimensio
 
 __global__ void pooling_forward(Layer layer);
 
+__global__ void zero_input_grads_pooling_layer(Layer layer);
+
 __global__ void grad_pooling_layer(Layer layer);
 
 #endif
