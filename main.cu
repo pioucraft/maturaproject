@@ -10,9 +10,10 @@
 #include "utils.h"
 
 #define BATCH_SIZE 32
-#define NUM_CYCLES 1000
-#define DATASET_SIZE 3000
-#define LEARNING_RATE 1e-3
+#define NUM_CYCLES 100
+#define DATASET_SIZE 60000
+#define TEST_DATASET_SIZE 10000
+#define LEARNING_RATE 1e-4
 
 int main() {
     printf("Hello, CUDA!\n");
@@ -21,7 +22,7 @@ int main() {
     load_mnist_dataset("mnist/train-images.idx3-ubyte", "mnist/train-labels.idx1-ubyte", &dataset, DATASET_SIZE);
 
     MNIST_Image* test_dataset;
-    load_mnist_dataset("mnist/t10k-images.idx3-ubyte", "mnist/t10k-labels.idx1-ubyte", &test_dataset, 10000);
+    load_mnist_dataset("mnist/t10k-images.idx3-ubyte", "mnist/t10k-labels.idx1-ubyte", &test_dataset, TEST_DATASET_SIZE);
 
     Layer* layers = (Layer*)malloc(sizeof(*layers) * 5);
 
@@ -42,10 +43,38 @@ int main() {
     for(int cycle = 0; cycle < NUM_CYCLES; cycle++) {
         printf("Cycle %d\n", cycle);
 
-        for(int i = 0; i < 10; i++) {
-            call_nn(&nn, dataset[i].pixels);
-            display_nn_output_mnist(&nn, dataset[i].label);
+        int correct_predictions = 0;
+        for(int i = 0; i < TEST_DATASET_SIZE; i++) {
+            call_nn(&nn, test_dataset[i].pixels);
+            DATA_TYPE output[10];
+            cudaMemcpy(output, nn.layers[nn.num_layers - 1].output.d1.output, 10 * sizeof(DATA_TYPE), cudaMemcpyDeviceToHost);
+
+            DATA_TYPE label[10];
+            cudaMemcpy(label, test_dataset[i].label, 10 * sizeof(DATA_TYPE), cudaMemcpyDeviceToHost);
+
+            int predicted_label = 0;
+            DATA_TYPE max_output = output[0];
+            int correct_label = 0;
+            
+
+            for(int j = 0; j < 10; j++) {
+                if(output[j] > max_output) {
+                    max_output = output[j];
+                    predicted_label = j;
+                }
+                if(label[j] > 0.0f) {
+                    correct_label = j;
+                }
+            }
+            if(predicted_label == correct_label) {
+                correct_predictions++;
+            }
         }
+        printf("Test accuracy: %.2f%%\n", (float)correct_predictions / TEST_DATASET_SIZE * 100.0f);
+
+        FILE* accuracy_file = fopen("test_accuracy.data", "a");
+        fprintf(accuracy_file, "cycle %d: %.2f%%\n", cycle, (float)correct_predictions / TEST_DATASET_SIZE * 100.0f);
+        fclose(accuracy_file);
 
         for(int i = 0; i < (DATASET_SIZE - BATCH_SIZE); i += BATCH_SIZE) {
             zero_grads_nn(&nn);

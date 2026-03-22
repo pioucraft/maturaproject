@@ -3,7 +3,6 @@
 #include <stdio.h>
 
 #include "convolution.h"
-#include "mlp.h"
 #include "nn.h"
 #include "utils.h"
 
@@ -71,7 +70,7 @@ __global__ void convolution_forward(Layer layer) {
     int input_channel_offset = input_channel * layer.input.d2.input_dimensions * layer.input.d2.input_dimensions;
     int filter_channel_offset = filter * layer.layer.convolution_layer.filter_dimensions * layer.layer.convolution_layer.filter_dimensions;
 
-    int output_location = output_channel_offset + output_y * layer.layer.convolution_layer.filter_dimensions + output_x;
+    int output_location = output_channel_offset + output_y * layer.output.d2.output_dimensions + output_x;
     layer.output.d2.output[output_location] = layer.layer.convolution_layer.biases[filter];
     for(int x = 0; x < layer.layer.convolution_layer.filter_dimensions; x++) {
         for(int y = 0; y < layer.layer.convolution_layer.filter_dimensions; y++) {
@@ -126,6 +125,12 @@ __global__ void grad_convolution_layer(Layer layer) {
             DATA_TYPE grad_value = layer.output.d2.grads[output_channel_offset + output_y * layer.output.d2.output_dimensions + output_x];
 
             atomicAdd(&(layer.layer.convolution_layer.filter_grads[filter_channel_offset + y * layer.layer.convolution_layer.filter_dimensions + x]), grad_value * input_value);
+
+            if(layer.input.d2.grads != NULL) {
+                if(input_value > 0) {
+                    atomicAdd(&(layer.input.d2.grads[input_channel_offset + input_y * layer.input.d2.input_dimensions + input_x]), grad_value * layer.layer.convolution_layer.filters[filter_channel_offset + y * layer.layer.convolution_layer.filter_dimensions + x]);
+                }
+            }
 
         }
     }
