@@ -13,7 +13,7 @@
 #define NUM_CYCLES 100
 #define DATASET_SIZE 60000
 #define TEST_DATASET_SIZE 10000
-#define LEARNING_RATE 1e-3
+#define LEARNING_RATE 1e-4
 
 int main() {
     printf("Hello, CUDA!\n");
@@ -28,9 +28,9 @@ int main() {
 
     create_convolution_layer(&(layers[0]), 28, 26, 3, 6, 1, 6);
     create_pooling_layer(&(layers[1]), 26, 13, 2, 6);
-    create_convolution_layer(&(layers[2]), 13, 10, 4, 4, 6, 24);
-    create_pooling_layer(&(layers[3]), 10, 5, 2, 24);
-    create_mlp_layer(&(layers[4]), 5*5*24, 128);
+    create_convolution_layer(&(layers[2]), 13, 10, 4, 12, 6, 12);
+    create_pooling_layer(&(layers[3]), 10, 5, 2, 12);
+    create_mlp_layer(&(layers[4]), 5*5*12, 128);
     create_mlp_layer(&(layers[5]), 128, 128);
     create_mlp_layer(&(layers[6]), 128, 10);
 
@@ -45,6 +45,8 @@ int main() {
     for(int cycle = 0; cycle < NUM_CYCLES; cycle++) {
         printf("Cycle %d\n", cycle);
 
+        call_nn(&nn, test_dataset[0].pixels);
+        display_nn_output_mnist(&nn, test_dataset[0].label);
         int correct_predictions = 0;
         for(int i = 0; i < TEST_DATASET_SIZE; i++) {
             call_nn(&nn, test_dataset[i].pixels);
