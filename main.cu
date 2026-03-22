@@ -9,11 +9,10 @@
 #include "pooling.h"
 #include "utils.h"
 
-#define BATCH_SIZE 32
 #define NUM_CYCLES 100
 #define DATASET_SIZE 60000
 #define TEST_DATASET_SIZE 10000
-#define LEARNING_RATE 1e-3
+#define LEARNING_RATE 1e-4
 
 int main() {
     printf("Hello, CUDA!\n");
@@ -24,17 +23,18 @@ int main() {
     MNIST_Image* test_dataset;
     load_mnist_dataset("mnist/t10k-images.idx3-ubyte", "mnist/t10k-labels.idx1-ubyte", &test_dataset, TEST_DATASET_SIZE);
 
-    Layer* layers = (Layer*)malloc(sizeof(*layers) * 6);
+    Layer* layers = (Layer*)malloc(sizeof(*layers) * 7);
 
-    create_convolution_layer(&(layers[0]), 28, 26, 3, 3, 1, 3);
-    create_pooling_layer(&(layers[1]), 26, 13, 2, 3);
-    create_convolution_layer(&(layers[2]), 13, 10, 4, 6, 3, 6);
-    create_pooling_layer(&(layers[3]), 10, 5, 2, 6);
-    create_mlp_layer(&(layers[4]), 5*5*6, 128);
-    create_mlp_layer(&(layers[5]), 128, 10);
+    create_convolution_layer(&(layers[0]), 28, 26, 3, 12, 1, 12);
+    create_pooling_layer(&(layers[1]), 26, 13, 2, 12);
+    create_convolution_layer(&(layers[2]), 13, 10, 4, 24, 12, 24);
+    create_pooling_layer(&(layers[3]), 10, 5, 2, 24);
+    create_mlp_layer(&(layers[4]), 5*5*24, 128);
+    create_mlp_layer(&(layers[5]), 128, 128);
+    create_mlp_layer(&(layers[6]), 128, 10);
 
     NN nn = {
-        .num_layers = 6,
+        .num_layers = 7,
         .layers = layers
     };
 
@@ -44,14 +44,9 @@ int main() {
     for(int cycle = 0; cycle < NUM_CYCLES; cycle++) {
         printf("Cycle %d\n", cycle);
 
-        display_nn_output_mnist(&nn, test_dataset[0].label);
-
         int correct_predictions = 0;
         for(int i = 0; i < TEST_DATASET_SIZE; i++) {
             call_nn(&nn, test_dataset[i].pixels);
-            if(i % 1000 == 0) {
-                display_nn_output_mnist(&nn, test_dataset[i].label);
-            }
             DATA_TYPE output[10];
             cudaMemcpy(output, nn.layers[nn.num_layers - 1].output.d1.output, 10 * sizeof(DATA_TYPE), cudaMemcpyDeviceToHost);
 
@@ -84,15 +79,13 @@ int main() {
 
         DATA_TYPE learning_rate = LEARNING_RATE * (1.0f - (float)cycle / NUM_CYCLES);
 
-        for(int i = 0; i < (DATASET_SIZE - BATCH_SIZE); i += BATCH_SIZE) {
+        for(int i = 0; i < DATASET_SIZE; i ++) {
             zero_grads_nn(&nn);
-            for(int j = 0; j < BATCH_SIZE; j++) {
-                if((i + j) % 10000 == 0) {
-                    printf("Processing image %d\n", i + j);
-                }
-                call_nn(&nn, dataset[i + j].pixels);
-                grad_nn(&nn, dataset[i + j].label);
+            if((i) % 10000 == 0) {
+                printf("Processing image %d\n", i );
             }
+            call_nn(&nn, dataset[i].pixels);
+            grad_nn(&nn, dataset[i].label);
             update_nn(&nn, learning_rate);
         }
         
