@@ -117,10 +117,20 @@ int grad_nn(NN* nn, DATA_TYPE* expected_output) {
         cudaDeviceSynchronize();
 
         if(layer.layer_type == LAYER_TYPE_MLP) {
+            if(layer.input.d1.grads != NULL) {
+                zero_input_grads_mlp_layer<<<1, layer.input.d1.input_size>>>(layer);
+                cudaDeviceSynchronize();
+            }
+
             grad_mlp_layer<<<layer.output.d1.output_size, layer.input.d1.input_size>>>(layer);
         } else if(layer.layer_type == LAYER_TYPE_POOLING) {
             grad_pooling_layer<<<layer.num_out_channels, layer.output.d2.output_dimensions * layer.output.d2.output_dimensions>>>(layer);
         } else if(layer.layer_type == LAYER_TYPE_CONVOLUTION) {
+            if(layer.input.d2.grads != NULL) {
+                zero_input_grads_convolution_layer<<<layer.num_in_channels, layer.input.d2.input_dimensions * layer.input.d2.input_dimensions>>>(layer);
+                cudaDeviceSynchronize();
+            }
+
             grad_convolution_layer<<<layer.num_out_channels, layer.output.d2.output_dimensions * layer.output.d2.output_dimensions>>>(layer);
         }
         cudaDeviceSynchronize();

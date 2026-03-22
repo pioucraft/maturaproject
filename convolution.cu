@@ -84,8 +84,6 @@ __global__ void convolution_forward(Layer layer) {
         }
     }
 
-    __syncthreads();
-
     if(layer.output.d2.output[output_location] < 0) {
         layer.output.d2.output[output_location] = 0;
     }
@@ -100,6 +98,13 @@ __global__ void zero_grads_convolution_layer(Layer layer) {
         layer.layer.convolution_layer.bias_grads[filter] = (DATA_TYPE)0.0;
     }
     layer.layer.convolution_layer.filter_grads[filter_idx] = (DATA_TYPE)0.0;
+}
+
+__global__ void zero_input_grads_convolution_layer(Layer layer) {
+    int input_channel = blockIdx.x;
+    int input_idx = input_channel * blockDim.x + threadIdx.x;
+
+    layer.input.d2.grads[input_idx] = (DATA_TYPE)0.0;
 }
 
 __global__ void grad_convolution_layer(Layer layer) {

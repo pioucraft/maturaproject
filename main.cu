@@ -24,16 +24,18 @@ int main() {
     MNIST_Image* test_dataset;
     load_mnist_dataset("mnist/t10k-images.idx3-ubyte", "mnist/t10k-labels.idx1-ubyte", &test_dataset, TEST_DATASET_SIZE);
 
-    Layer* layers = (Layer*)malloc(sizeof(*layers) * 5);
+    Layer* layers = (Layer*)malloc(sizeof(*layers) * 7);
 
     create_convolution_layer(&(layers[0]), 28, 26, 3, 6, 1, 6);
     create_pooling_layer(&(layers[1]), 26, 13, 2, 6);
-    create_mlp_layer(&(layers[2]), 13*13*6, 128);
-    create_mlp_layer(&(layers[3]), 128, 128);
-    create_mlp_layer(&(layers[4]), 128, 10);
+    create_convolution_layer(&(layers[2]), 13, 10, 4, 4, 6, 24);
+    create_pooling_layer(&(layers[3]), 10, 5, 2, 24);
+    create_mlp_layer(&(layers[4]), 5*5*24, 128);
+    create_mlp_layer(&(layers[5]), 128, 128);
+    create_mlp_layer(&(layers[6]), 128, 10);
 
     NN nn = {
-        .num_layers = 5,
+        .num_layers = 7,
         .layers = layers
     };
 

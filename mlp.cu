@@ -87,6 +87,10 @@ __global__ void zero_grads_mlp_layer(Layer layer) {
     layer.layer.mlp_layer.weight_grads[weight_idx] = (DATA_TYPE)0.0;
 }
 
+__global__ void zero_input_grads_mlp_layer(Layer layer) {
+    layer.input.d1.grads[threadIdx.x] = (DATA_TYPE)0.0;
+}
+
 __global__ void grad_mlp_layer(Layer layer) {
     // assume that input and hidden layers always use ReLU activation function
     int neuron_idx = blockIdx.x;
@@ -95,9 +99,6 @@ __global__ void grad_mlp_layer(Layer layer) {
 
     if(threadIdx.x == 0) {
         layer.layer.mlp_layer.bias_grads[neuron_idx] += layer.output.d1.grads[neuron_idx];
-    }
-    if(layer.input.d1.grads != NULL && blockIdx.x == 0) {
-        layer.input.d1.grads[input_idx] = (DATA_TYPE)0.0;
     }
     __syncthreads();
     layer.layer.mlp_layer.weight_grads[weight_idx] += layer.output.d1.grads[neuron_idx] * layer.input.d1.input[input_idx];
