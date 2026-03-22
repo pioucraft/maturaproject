@@ -90,7 +90,7 @@ int zero_grads_nn(NN* nn) {
         if(layer.layer_type == LAYER_TYPE_MLP) {
             zero_grads_mlp_layer<<<layer.output.d1.output_size, layer.input.d1.input_size>>>(layer);
         } else if(layer.layer_type == LAYER_TYPE_CONVOLUTION) {
-            zero_grads_convolution_layer<<<layer.num_out_channels, layer.layer.convolution_layer.filters_num * layer.layer.convolution_layer.filter_dimensions * layer.layer.convolution_layer.filter_dimensions>>>(layer);
+            zero_grads_convolution_layer<<<layer.num_out_channels, layer.layer.convolution_layer.filter_dimensions * layer.layer.convolution_layer.filter_dimensions>>>(layer);
         }
     }
 
@@ -148,7 +148,7 @@ int update_nn(NN* nn, DATA_TYPE learning_rate) {
         if(layer.layer_type == LAYER_TYPE_MLP) {
             update_mlp_layer<<<layer.output.d1.output_size, layer.input.d1.input_size>>>(layer, learning_rate);
         } else if(layer.layer_type == LAYER_TYPE_CONVOLUTION) {
-            update_convolution_layer<<<layer.num_out_channels, layer.layer.convolution_layer.filters_num * layer.layer.convolution_layer.filter_dimensions * layer.layer.convolution_layer.filter_dimensions>>>(layer, learning_rate);
+            update_convolution_layer<<<layer.num_out_channels, layer.layer.convolution_layer.filter_dimensions * layer.layer.convolution_layer.filter_dimensions>>>(layer, learning_rate);
         }
     }
 
