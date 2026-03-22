@@ -12,7 +12,7 @@
 #define NUM_CYCLES 100
 #define DATASET_SIZE 60000
 #define TEST_DATASET_SIZE 10000
-#define LEARNING_RATE 1e-4
+#define LEARNING_RATE 1e-3
 
 int main() {
     printf("Hello, CUDA!\n");
@@ -23,18 +23,17 @@ int main() {
     MNIST_Image* test_dataset;
     load_mnist_dataset("mnist/t10k-images.idx3-ubyte", "mnist/t10k-labels.idx1-ubyte", &test_dataset, TEST_DATASET_SIZE);
 
-    Layer* layers = (Layer*)malloc(sizeof(*layers) * 7);
+    Layer* layers = (Layer*)malloc(sizeof(*layers) * 6);
 
-    create_convolution_layer(&(layers[0]), 28, 26, 3, 12, 1, 12);
-    create_pooling_layer(&(layers[1]), 26, 13, 2, 12);
-    create_convolution_layer(&(layers[2]), 13, 10, 4, 24, 12, 24);
-    create_pooling_layer(&(layers[3]), 10, 5, 2, 24);
-    create_mlp_layer(&(layers[4]), 5*5*24, 128);
-    create_mlp_layer(&(layers[5]), 128, 128);
-    create_mlp_layer(&(layers[6]), 128, 10);
+    create_convolution_layer(&(layers[0]), 28, 26, 3, 20, 1, 20);
+    create_pooling_layer(&(layers[1]), 26, 13, 2, 20);
+    create_convolution_layer(&(layers[2]), 13, 10, 4, 40, 20, 40);
+    create_pooling_layer(&(layers[3]), 10, 5, 2, 40);
+    create_mlp_layer(&(layers[4]), 5*5*40, 128);
+    create_mlp_layer(&(layers[5]), 128, 10);
 
     NN nn = {
-        .num_layers = 7,
+        .num_layers = 6,
         .layers = layers
     };
 
