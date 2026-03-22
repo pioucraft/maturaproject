@@ -100,7 +100,6 @@ __global__ void grad_mlp_layer(Layer layer) {
     if(threadIdx.x == 0) {
         layer.layer.mlp_layer.bias_grads[neuron_idx] += layer.output.d1.grads[neuron_idx];
     }
-    __syncthreads();
     layer.layer.mlp_layer.weight_grads[weight_idx] += layer.output.d1.grads[neuron_idx] * layer.input.d1.input[input_idx];
 
     if(layer.input.d1.grads != NULL) {
