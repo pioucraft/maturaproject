@@ -39,7 +39,6 @@ int main() {
 
     create_nn(&nn);
 
-
     for(int cycle = 0; cycle < NUM_CYCLES; cycle++) {
         printf("Cycle %d\n", cycle);
 
@@ -78,6 +77,7 @@ int main() {
 
         DATA_TYPE learning_rate = LEARNING_RATE * (1.0f - (float)cycle / NUM_CYCLES);
 
+
         for(int i = 0; i < DATASET_SIZE; i ++) {
             zero_grads_nn(&nn);
             if((i) % 10000 == 0) {
@@ -90,6 +90,7 @@ int main() {
         
     }
 
+    save_nn(&nn, "model.data");
 
     return 0;
 }

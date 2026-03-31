@@ -119,3 +119,29 @@ __global__ void update_mlp_layer(Layer layer, DATA_TYPE learning_rate) {
     }
     layer.layer.mlp_layer.weights[weight_idx] -= learning_rate * layer.layer.mlp_layer.weight_grads[weight_idx];
 }
+
+int save_mlp_layer(Layer layer, FILE* file) {
+    DATA_TYPE* host_weights = (DATA_TYPE*)malloc(layer.input.d1.input_size * layer.output.d1.output_size * sizeof(DATA_TYPE));
+    DATA_TYPE* host_biases = (DATA_TYPE*)malloc(layer.output.d1.output_size * sizeof(DATA_TYPE));
+
+    cudaMemcpy(host_weights, layer.layer.mlp_layer.weights, layer.input.d1.input_size * layer.output.d1.output_size * sizeof(DATA_TYPE), cudaMemcpyDeviceToHost);
+    cudaMemcpy(host_biases, layer.layer.mlp_layer.biases, layer.output.d1.output_size * sizeof(DATA_TYPE), cudaMemcpyDeviceToHost);
+
+    fwrite(host_weights, sizeof(DATA_TYPE), layer.input.d1.input_size * layer.output.d1.output_size, file);
+    fwrite(host_biases, sizeof(DATA_TYPE), layer.output.d1.output_size, file);
+
+    return 0;
+}
+
+int load_mlp_layer(Layer* layer, FILE* file) {
+    DATA_TYPE* host_weights = (DATA_TYPE*)malloc(layer->input.d1.input_size * layer->output.d1.output_size * sizeof(DATA_TYPE));
+    DATA_TYPE* host_biases = (DATA_TYPE*)malloc(layer->output.d1.output_size * sizeof(DATA_TYPE));
+
+    fread(host_weights, sizeof(DATA_TYPE), layer->input.d1.input_size * layer->output.d1.output_size, file);
+    fread(host_biases, sizeof(DATA_TYPE), layer->output.d1.output_size, file);
+
+    cudaMemcpy(layer->layer.mlp_layer.weights, host_weights, layer->input.d1.input_size * layer->output.d1.output_size * sizeof(DATA_TYPE), cudaMemcpyHostToDevice);
+    cudaMemcpy(layer->layer.mlp_layer.biases, host_biases, layer->output.d1.output_size * sizeof(DATA_TYPE), cudaMemcpyHostToDevice);
+
+    return 0;
+}

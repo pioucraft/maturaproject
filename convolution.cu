@@ -167,3 +167,29 @@ __global__ void update_convolution_layer(Layer layer, float learning_rate) {
         layer.layer.convolution_layer.filters[filter_idx] -= learning_rate * layer.layer.convolution_layer.filter_grads[filter_idx];
     }
 }
+
+int save_convolution_layer(Layer layer, FILE* file) {
+    DATA_TYPE* host_filters = (DATA_TYPE*)malloc(layer.layer.convolution_layer.filters_num * layer.layer.convolution_layer.filter_dimensions * layer.layer.convolution_layer.filter_dimensions * layer.num_in_channels * sizeof(DATA_TYPE));
+    DATA_TYPE* host_biases = (DATA_TYPE*)malloc(layer.layer.convolution_layer.filters_num * sizeof(DATA_TYPE));
+
+    cudaMemcpy(host_filters, layer.layer.convolution_layer.filters, layer.layer.convolution_layer.filters_num * layer.layer.convolution_layer.filter_dimensions * layer.layer.convolution_layer.filter_dimensions * layer.num_in_channels * sizeof(DATA_TYPE), cudaMemcpyDeviceToHost);
+    cudaMemcpy(host_biases, layer.layer.convolution_layer.biases, layer.layer.convolution_layer.filters_num * sizeof(DATA_TYPE), cudaMemcpyDeviceToHost);
+
+    fwrite(host_filters, sizeof(DATA_TYPE), layer.layer.convolution_layer.filters_num * layer.layer.convolution_layer.filter_dimensions * layer.layer.convolution_layer.filter_dimensions * layer.num_in_channels, file);
+    fwrite(host_biases, sizeof(DATA_TYPE), layer.layer.convolution_layer.filters_num, file);
+
+    return 0;
+}
+
+int load_convolution_layer(Layer* layer, FILE* file) {
+    DATA_TYPE* host_filters = (DATA_TYPE*)malloc(layer->layer.convolution_layer.filters_num * layer->layer.convolution_layer.filter_dimensions * layer->layer.convolution_layer.filter_dimensions * layer->num_in_channels * sizeof(DATA_TYPE));
+    DATA_TYPE* host_biases = (DATA_TYPE*)malloc(layer->layer.convolution_layer.filters_num * sizeof(DATA_TYPE));
+
+    fread(host_filters, sizeof(DATA_TYPE), layer->layer.convolution_layer.filters_num * layer->layer.convolution_layer.filter_dimensions * layer->layer.convolution_layer.filter_dimensions * layer->num_in_channels, file);
+    fread(host_biases, sizeof(DATA_TYPE), layer->layer.convolution_layer.filters_num, file);
+
+    cudaMemcpy(layer->layer.convolution_layer.filters, host_filters, layer->layer.convolution_layer.filters_num * layer->layer.convolution_layer.filter_dimensions * layer->layer.convolution_layer.filter_dimensions * layer->num_in_channels * sizeof(DATA_TYPE), cudaMemcpyHostToDevice);
+    cudaMemcpy(layer->layer.convolution_layer.biases, host_biases, layer->layer.convolution_layer.filters_num * sizeof(DATA_TYPE), cudaMemcpyHostToDevice);
+
+    return 0;
+}

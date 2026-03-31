@@ -2,6 +2,7 @@
 #define CONVOLUTION_H
 
 #include <cuda_runtime.h>
+#include <stdio.h>
 
 #include "nn.h"
 #include "utils.h"
@@ -18,5 +19,9 @@ __global__ void grad_convolution_layer(Layer layer);
 __global__ void update_convolution_layer(Layer layer, DATA_TYPE learning_rate);
 
 __global__ void zero_input_grads_convolution_layer(Layer layer);
+
+int save_convolution_layer(Layer layer, FILE* file);
+
+int load_convolution_layer(Layer* layer, FILE* file);
 
 #endif

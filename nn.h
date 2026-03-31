@@ -17,4 +17,8 @@ int grad_nn(NN* nn, DATA_TYPE* expected_output);
 
 int update_nn(NN* nn, DATA_TYPE learning_rate);
 
+int save_nn(NN* nn, const char* filename);
+
+int load_nn(NN* nn, const char* filename);
+
 #endif

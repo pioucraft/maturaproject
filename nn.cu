@@ -161,3 +161,43 @@ int update_nn(NN* nn, DATA_TYPE learning_rate) {
 
     return 0;
 }
+
+int save_nn(NN* nn, const char* filename) {
+    FILE* file = fopen(filename, "wb");
+    if(file == NULL) {
+        printf("Error opening file for writing: %s\n", filename);
+        return -1;
+    }
+
+    for(int i = 0; i < nn->num_layers; i++) {
+        Layer layer = nn->layers[i];
+        if(layer.layer_type == LAYER_TYPE_MLP) {
+            save_mlp_layer(layer, file);
+        } else if(layer.layer_type == LAYER_TYPE_CONVOLUTION) {
+            save_convolution_layer(layer, file);
+        }
+    }
+
+    fclose(file);
+    return 0;
+}
+
+int load_nn(NN* nn, const char* filename) {
+    FILE* file = fopen(filename, "rb");
+    if(file == NULL) {
+        printf("Error opening file for reading: %s\n", filename);
+        return -1;
+    }
+
+    for(int i = 0; i < nn->num_layers; i++) {
+        Layer* layer = &(nn->layers[i]);
+        if(layer->layer_type == LAYER_TYPE_MLP) {
+            load_mlp_layer(layer, file);
+        } else if(layer->layer_type == LAYER_TYPE_CONVOLUTION) {
+            load_convolution_layer(layer, file);
+        }
+    }
+
+    fclose(file);
+    return 0;
+}
