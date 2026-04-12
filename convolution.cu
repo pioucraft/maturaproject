@@ -59,14 +59,19 @@ int create_convolution_layer(Layer* layer, int input_dimensions, int output_dime
 
 
 __global__ void convolution_forward(Layer layer) {
-    int output_channel = blockIdx.x;
-    int filter = blockIdx.x;
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    int output_channel = idx / (layer.output.d2.output_dimensions * layer.output.d2.output_dimensions);
+    int filter = output_channel;
 
-    int output_x = threadIdx.x % layer.output.d2.output_dimensions;
-    int output_y = threadIdx.x / layer.output.d2.output_dimensions;
+    int output_x = idx % layer.output.d2.output_dimensions;
+    int output_y = (idx / layer.output.d2.output_dimensions) % layer.output.d2.output_dimensions;
     
     int output_channel_offset = output_channel * layer.output.d2.output_dimensions * layer.output.d2.output_dimensions;
     int filter_offset = filter * layer.layer.convolution_layer.filter_dimensions * layer.layer.convolution_layer.filter_dimensions * layer.num_in_channels;
+
+    if(idx >= layer.num_out_channels * layer.output.d2.output_dimensions * layer.output.d2.output_dimensions) {
+        return;
+    }
 
     int output_location = output_channel_offset + output_y * layer.output.d2.output_dimensions + output_x;
     layer.output.d2.output[output_location] = layer.layer.convolution_layer.biases[filter];
@@ -92,33 +97,42 @@ __global__ void convolution_forward(Layer layer) {
 
 
 __global__ void zero_grads_convolution_layer(Layer layer) {
-    int filter = blockIdx.x;
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    int filter = idx / (layer.layer.convolution_layer.filter_dimensions * layer.layer.convolution_layer.filter_dimensions);
 
-    if(threadIdx.x == 0) {
+    if(idx >= layer.layer.convolution_layer.filters_num * layer.layer.convolution_layer.filter_dimensions * layer.layer.convolution_layer.filter_dimensions) {
+        return;
+    }
+
+    if(idx % (layer.layer.convolution_layer.filter_dimensions * layer.layer.convolution_layer.filter_dimensions) == 0) {
         layer.layer.convolution_layer.bias_grads[filter] = (DATA_TYPE)0.0;
     }
     for(int in_channel = 0; in_channel < layer.num_in_channels; in_channel++) {
-        int filter_idx = filter * layer.layer.convolution_layer.filter_dimensions * layer.layer.convolution_layer.filter_dimensions * layer.num_in_channels + in_channel * layer.layer.convolution_layer.filter_dimensions * layer.layer.convolution_layer.filter_dimensions + threadIdx.x;
+        int filter_idx = filter * layer.layer.convolution_layer.filter_dimensions * layer.layer.convolution_layer.filter_dimensions * layer.num_in_channels + in_channel * layer.layer.convolution_layer.filter_dimensions * layer.layer.convolution_layer.filter_dimensions + idx % (layer.layer.convolution_layer.filter_dimensions * layer.layer.convolution_layer.filter_dimensions);
         layer.layer.convolution_layer.filter_grads[filter_idx] = (DATA_TYPE)0.0;
     }
 }
 
 __global__ void zero_input_grads_convolution_layer(Layer layer) {
-    int input_channel = blockIdx.x;
-    int input_idx = input_channel * blockDim.x + threadIdx.x;
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
-    layer.input.d2.grads[input_idx] = (DATA_TYPE)0.0;
+    layer.input.d2.grads[idx] = (DATA_TYPE)0.0;
 }
 
 __global__ void grad_convolution_layer(Layer layer) {
-    int output_channel = blockIdx.x;
-    int filter = blockIdx.x;
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    int output_channel = idx / (layer.output.d2.output_dimensions * layer.output.d2.output_dimensions);
+    int filter = output_channel;
 
-    int output_x = threadIdx.x % layer.output.d2.output_dimensions;
-    int output_y = threadIdx.x / layer.output.d2.output_dimensions;
+    int output_x = idx % layer.output.d2.output_dimensions;
+    int output_y = (idx / layer.output.d2.output_dimensions) % layer.output.d2.output_dimensions;
     
     int output_channel_offset = output_channel * layer.output.d2.output_dimensions * layer.output.d2.output_dimensions;
     int filter_offset = filter * layer.layer.convolution_layer.filter_dimensions * layer.layer.convolution_layer.filter_dimensions * layer.num_in_channels;
+
+    if(idx >= layer.num_out_channels * layer.output.d2.output_dimensions * layer.output.d2.output_dimensions) {
+        return;
+    }
 
     atomicAdd(&(layer.layer.convolution_layer.bias_grads[filter]), layer.output.d2.grads[output_channel_offset + output_y * layer.output.d2.output_dimensions + output_x]);
 
@@ -150,14 +164,19 @@ __global__ void grad_convolution_layer(Layer layer) {
 }
 
 __global__ void update_convolution_layer(Layer layer, float learning_rate) {
-    int filter = blockIdx.x;
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    int filter = idx / (layer.layer.convolution_layer.filter_dimensions * layer.layer.convolution_layer.filter_dimensions);
 
-    if(threadIdx.x == 0) {
+    if(idx >= layer.layer.convolution_layer.filters_num * layer.layer.convolution_layer.filter_dimensions * layer.layer.convolution_layer.filter_dimensions) {
+        return;
+    }
+
+    if(idx % (layer.layer.convolution_layer.filter_dimensions * layer.layer.convolution_layer.filter_dimensions) == 0) {
         layer.layer.convolution_layer.biases[filter] -= learning_rate * layer.layer.convolution_layer.bias_grads[filter];
     }
 
     for(int in_channel = 0; in_channel < layer.num_in_channels; in_channel++) {
-        int filter_idx = filter * layer.layer.convolution_layer.filter_dimensions * layer.layer.convolution_layer.filter_dimensions * layer.num_in_channels + in_channel * layer.layer.convolution_layer.filter_dimensions * layer.layer.convolution_layer.filter_dimensions + threadIdx.x;
+        int filter_idx = filter * layer.layer.convolution_layer.filter_dimensions * layer.layer.convolution_layer.filter_dimensions * layer.num_in_channels + in_channel * layer.layer.convolution_layer.filter_dimensions * layer.layer.convolution_layer.filter_dimensions + idx % (layer.layer.convolution_layer.filter_dimensions * layer.layer.convolution_layer.filter_dimensions);
         layer.layer.convolution_layer.filters[filter_idx] -= learning_rate * layer.layer.convolution_layer.filter_grads[filter_idx];
     }
 }
