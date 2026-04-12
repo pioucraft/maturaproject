@@ -66,10 +66,6 @@ __global__ void mlp_forward(Layer layer) {
         return;
     }
 
-    if(input_idx == 0) {
-        layer.output.d1.output[neuron_idx] = layer.layer.mlp_layer.biases[neuron_idx];
-    }
-    __syncthreads();
     atomicAdd(&(layer.output.d1.output[neuron_idx]), layer.input.d1.input[input_idx] * layer.layer.mlp_layer.weights[weight_idx]);
 }
 
@@ -131,7 +127,7 @@ __global__ void update_mlp_layer(Layer layer, DATA_TYPE learning_rate) {
         return;
     }
 
-    if(threadIdx.x == 0) {
+    if(input_idx == 0) {
         layer.layer.mlp_layer.biases[neuron_idx] -= learning_rate * layer.layer.mlp_layer.bias_grads[neuron_idx];
     }
     layer.layer.mlp_layer.weights[weight_idx] -= learning_rate * layer.layer.mlp_layer.weight_grads[weight_idx];
