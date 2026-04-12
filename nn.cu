@@ -66,7 +66,8 @@ int call_nn(NN* nn, DATA_TYPE* input) {
             mlp_forward<<<num_blocks, NUM_THREADS>>>(layer);
             cudaDeviceSynchronize();
         } else if(layer.layer_type == LAYER_TYPE_POOLING) {
-            pooling_forward<<<layer.num_out_channels, layer.output.d2.output_dimensions * layer.output.d2.output_dimensions>>>(layer);
+            int num_blocks = layer.num_out_channels * layer.output.d2.output_dimensions * layer.output.d2.output_dimensions / NUM_THREADS + 1;
+            pooling_forward<<<num_blocks, NUM_THREADS>>>(layer);
             cudaDeviceSynchronize();
         } else if(layer.layer_type == LAYER_TYPE_CONVOLUTION) {
             convolution_forward<<<layer.num_out_channels, layer.output.d2.output_dimensions * layer.output.d2.output_dimensions>>>(layer);
@@ -151,10 +152,12 @@ int grad_nn(NN* nn, DATA_TYPE* expected_output) {
             grad_mlp_layer<<<num_blocks, NUM_THREADS>>>(layer);
         } else if(layer.layer_type == LAYER_TYPE_POOLING) {
             if(layer.input.d2.grads != NULL) {
-                zero_input_grads_pooling_layer<<<layer.num_in_channels, layer.input.d2.input_dimensions * layer.input.d2.input_dimensions>>>(layer);
+                int num_blocks = layer.num_in_channels * layer.input.d2.input_dimensions * layer.input.d2.input_dimensions / NUM_THREADS + 1;
+                zero_input_grads_pooling_layer<<<num_blocks, NUM_THREADS>>>(layer);
                 cudaDeviceSynchronize();
             }
-            grad_pooling_layer<<<layer.num_out_channels, layer.output.d2.output_dimensions * layer.output.d2.output_dimensions>>>(layer);
+            int num_blocks = layer.num_out_channels * layer.output.d2.output_dimensions * layer.output.d2.output_dimensions / NUM_THREADS + 1;
+            grad_pooling_layer<<<num_blocks, NUM_THREADS>>>(layer);
         } else if(layer.layer_type == LAYER_TYPE_CONVOLUTION) {
             if(layer.input.d2.grads != NULL) {
                 zero_input_grads_convolution_layer<<<layer.num_in_channels, layer.input.d2.input_dimensions * layer.input.d2.input_dimensions>>>(layer);

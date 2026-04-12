@@ -31,12 +31,18 @@ int create_pooling_layer(Layer* layer, int input_dimensions, int output_dimensio
 }
 
 __global__ void pooling_forward(Layer layer) {
-    int channel = blockIdx.x;
-    int output_x = threadIdx.x % layer.output.d2.output_dimensions;
-    int output_y = threadIdx.x / layer.output.d2.output_dimensions;
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+
+    int channel = idx / (layer.output.d2.output_dimensions * layer.output.d2.output_dimensions);
+    int output_x = idx % layer.output.d2.output_dimensions;
+    int output_y = (idx / layer.output.d2.output_dimensions) % layer.output.d2.output_dimensions;
 
     int channel_input_offset = channel * layer.input.d2.input_dimensions * layer.input.d2.input_dimensions;
     int channel_output_offset = channel * layer.output.d2.output_dimensions * layer.output.d2.output_dimensions;
+
+    if(idx >= layer.num_out_channels * layer.output.d2.output_dimensions * layer.output.d2.output_dimensions) {
+        return;
+    }
 
     layer.output.d2.output[channel_output_offset + output_y * layer.output.d2.output_dimensions + output_x] = (DATA_TYPE)0.0;
     for(int x = 0; x < layer.layer.pooling_layer.pool_dimensions; x++) {
@@ -55,9 +61,14 @@ __global__ void pooling_forward(Layer layer) {
 }
 
 __global__ void zero_input_grads_pooling_layer(Layer layer) {
-    int channel = blockIdx.x;
-    int input_x = threadIdx.x % layer.input.d2.input_dimensions;
-    int input_y = threadIdx.x / layer.input.d2.input_dimensions;
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    int channel = idx / (layer.input.d2.input_dimensions * layer.input.d2.input_dimensions);
+    int input_x = idx % layer.input.d2.input_dimensions;
+    int input_y = (idx / layer.input.d2.input_dimensions) % layer.input.d2.input_dimensions;
+
+    if(idx >= layer.num_in_channels * layer.input.d2.input_dimensions * layer.input.d2.input_dimensions) {
+        return;
+    }
 
     int channel_input_offset = channel * layer.input.d2.input_dimensions * layer.input.d2.input_dimensions;
 
@@ -65,13 +76,17 @@ __global__ void zero_input_grads_pooling_layer(Layer layer) {
 }
 
 __global__ void grad_pooling_layer(Layer layer) {
-    int channel = blockIdx.x;
-    int output_x = threadIdx.x % layer.output.d2.output_dimensions;
-    int output_y = threadIdx.x / layer.output.d2.output_dimensions;
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    int channel = idx / (layer.output.d2.output_dimensions * layer.output.d2.output_dimensions);
+    int output_x = idx % layer.output.d2.output_dimensions;
+    int output_y = (idx / layer.output.d2.output_dimensions) % layer.output.d2.output_dimensions;
 
     int channel_input_offset = channel * layer.input.d2.input_dimensions * layer.input.d2.input_dimensions;
     int channel_output_offset = channel * layer.output.d2.output_dimensions * layer.output.d2.output_dimensions;
 
+    if(idx >= layer.num_out_channels * layer.output.d2.output_dimensions * layer.output.d2.output_dimensions) {
+        return;
+    }
 
     if(layer.input.d2.grads == NULL) {
         return;
