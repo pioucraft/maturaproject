@@ -6,6 +6,7 @@
 #include "nn.h"
 #include "pooling.h"
 #include "relu.h"
+#include "tanh.h"
 #include "utils.h"
 
 int create_nn(NN* nn) {
@@ -14,7 +15,7 @@ int create_nn(NN* nn) {
 
     for(int i = 0; i < nn->num_layers; i++) {
         Layer* layer = &(nn->layers[i]);
-        if(layer->layer_type == LAYER_TYPE_MLP || layer->layer_type == LAYER_TYPE_RELU) { // 1d input and 1d output
+        if(layer->layer_type == LAYER_TYPE_MLP || layer->layer_type == LAYER_TYPE_RELU || layer->layer_type == LAYER_TYPE_TANH) { // 1d input and 1d output
             layer->input.d1.input = current_input;
             layer->input.d1.grads = current_input_grads;
 
@@ -41,7 +42,7 @@ int create_nn(NN* nn) {
 }
 
 int call_nn(NN* nn, DATA_TYPE* input) {
-    if(nn->layers[0].layer_type == LAYER_TYPE_MLP || nn->layers[0].layer_type == LAYER_TYPE_RELU) { // 1d input and 1d output
+    if(nn->layers[0].layer_type == LAYER_TYPE_MLP || nn->layers[0].layer_type == LAYER_TYPE_RELU || nn->layers[0].layer_type == LAYER_TYPE_TANH) { // 1d input and 1d output
         nn->layers[0].input.d1.input = input;
     } else if(nn->layers[0].layer_type == LAYER_TYPE_POOLING || nn->layers[0].layer_type == LAYER_TYPE_CONVOLUTION) { // 2d input and 2d output
         nn->layers[0].input.d2.input = input;
@@ -50,8 +51,7 @@ int call_nn(NN* nn, DATA_TYPE* input) {
     for(int i = 0; i < nn->num_layers; i++) {
         Layer layer = nn->layers[i];
         if(layer.layer_type == LAYER_TYPE_MLP) {
-            int activation_function = (i == nn->num_layers - 1) ? ACTIVATION_FUNCTION_TANH : ACTIVATION_FUNCTION_RELU;
-            mlp_forward<<<layer.output.d1.output_size, layer.input.d1.input_size>>>(layer, activation_function);
+            mlp_forward<<<layer.output.d1.output_size, layer.input.d1.input_size>>>(layer);
             cudaDeviceSynchronize();
         } else if(layer.layer_type == LAYER_TYPE_POOLING) {
             pooling_forward<<<layer.num_out_channels, layer.output.d2.output_dimensions * layer.output.d2.output_dimensions>>>(layer);
@@ -60,7 +60,11 @@ int call_nn(NN* nn, DATA_TYPE* input) {
             convolution_forward<<<layer.num_out_channels, layer.output.d2.output_dimensions * layer.output.d2.output_dimensions>>>(layer);
             cudaDeviceSynchronize();
         } else if(layer.layer_type == LAYER_TYPE_RELU) {
-            relu_forward<<<layer.output.d1.output_size, 1>>>(layer);
+            int num_blocks = layer.output.d1.output_size / 128 + 1;
+            relu_forward<<<num_blocks, 128>>>(layer);
+            cudaDeviceSynchronize();
+        } else if(layer.layer_type == LAYER_TYPE_TANH) {
+            tanh_forward<<<1, layer.output.d1.output_size>>>(layer);
             cudaDeviceSynchronize();
         }
     }
@@ -73,7 +77,9 @@ int call_nn(NN* nn, DATA_TYPE* input) {
 __global__ void zero_grads_layer_1d_output(Layer layer) {
     int output_idx = blockIdx.x * blockDim.x + threadIdx.x;
 
-    layer.output.d1.grads[output_idx] = (DATA_TYPE)0.0;
+    if(output_idx < layer.output.d1.output_size) {
+        layer.output.d1.grads[output_idx] = (DATA_TYPE)0.0;
+    }
 }
 
 __global__ void zero_grads_layer_2d_output(Layer layer) {
@@ -85,8 +91,9 @@ __global__ void zero_grads_layer_2d_output(Layer layer) {
 int zero_grads_nn(NN* nn) {
     for(int i = 0; i < nn->num_layers; i++) {
         Layer layer = nn->layers[i];
-        if(layer.layer_type == LAYER_TYPE_MLP || layer.layer_type == LAYER_TYPE_RELU) { // 1d input and 1d output
-            zero_grads_layer_1d_output<<<layer.num_out_channels, layer.output.d1.output_size>>>(layer);
+        if(layer.layer_type == LAYER_TYPE_MLP || layer.layer_type == LAYER_TYPE_RELU || layer.layer_type == LAYER_TYPE_TANH) { // 1d input and 1d output
+            int num_blocks = layer.output.d1.output_size * layer.num_out_channels / 128 + 1;
+            zero_grads_layer_1d_output<<<num_blocks, 128>>>(layer);
         } else if(layer.layer_type == LAYER_TYPE_POOLING || layer.layer_type == LAYER_TYPE_CONVOLUTION) { // 2d input and 2d output
             zero_grads_layer_2d_output<<<layer.num_out_channels, layer.output.d2.output_dimensions * layer.output.d2.output_dimensions>>>(layer);
         }
@@ -108,8 +115,7 @@ __global__ void grad_error(Layer output_layer, DATA_TYPE* expected_output) {
     // We assume that the output layer is always an MLP layer with tanh activation function
     int output_idx = threadIdx.x;
     DATA_TYPE error_grad = 2 * (output_layer.output.d1.output[output_idx] - expected_output[output_idx]);
-    DATA_TYPE grad = error_grad * (1 - output_layer.output.d1.output[output_idx] * output_layer.output.d1.output[output_idx]);
-    output_layer.output.d1.grads[output_idx] = grad;
+    output_layer.output.d1.grads[output_idx] = error_grad;
 }
 
 int grad_nn(NN* nn, DATA_TYPE* expected_output) {
@@ -142,10 +148,17 @@ int grad_nn(NN* nn, DATA_TYPE* expected_output) {
             grad_convolution_layer<<<layer.num_out_channels, layer.output.d2.output_dimensions * layer.output.d2.output_dimensions>>>(layer);
         } else if(layer.layer_type == LAYER_TYPE_RELU) {
             if(layer.input.d1.grads != NULL) {
-                zero_input_grads_relu_layer<<<1, layer.input.d1.input_size>>>(layer);
+                int num_blocks = layer.input.d1.input_size / 128 + 1;
+                zero_input_grads_relu_layer<<<num_blocks, 128>>>(layer);
                 cudaDeviceSynchronize();
             }
             grad_relu_layer<<<layer.output.d1.output_size, 1>>>(layer);
+        } else if(layer.layer_type == LAYER_TYPE_TANH) {
+            if(layer.input.d1.grads != NULL) {
+                zero_input_grads_tanh_layer<<<1, layer.input.d1.input_size>>>(layer);
+                cudaDeviceSynchronize();
+            }
+            grad_tanh_layer<<<1, layer.output.d1.output_size>>>(layer);
         }
         cudaDeviceSynchronize();
     }

@@ -8,6 +8,7 @@
 #include "nn.h"
 #include "pooling.h"
 #include "relu.h"
+#include "tanh.h"
 #include "utils.h"
 
 #define NUM_CYCLES 100
@@ -24,17 +25,24 @@ int main() {
     MNIST_Image* test_dataset;
     load_mnist_dataset("mnist/t10k-images.idx3-ubyte", "mnist/t10k-labels.idx1-ubyte", &test_dataset, TEST_DATASET_SIZE);
 
-    Layer* layers = (Layer*)malloc(sizeof(*layers) * 6);
+    Layer* layers = (Layer*)malloc(sizeof(*layers) * 10);
 
     create_convolution_layer(&(layers[0]), 28, 26, 3, 20, 1, 20);
     create_pooling_layer(&(layers[1]), 26, 13, 2, 20);
-    create_convolution_layer(&(layers[2]), 13, 10, 4, 40, 20, 40);
-    create_pooling_layer(&(layers[3]), 10, 5, 2, 40);
-    create_mlp_layer(&(layers[4]), 5*5*40, 128);
-    create_mlp_layer(&(layers[5]), 128, 10);
+    create_relu_layer(&(layers[2]), 13*13*20);
+
+    create_convolution_layer(&(layers[3]), 13, 10, 4, 40, 20, 40);
+    create_pooling_layer(&(layers[4]), 10, 5, 2, 40);
+    create_relu_layer(&(layers[5]), 5*5*40);
+
+    create_mlp_layer(&(layers[6]), 5*5*40, 128);
+    create_relu_layer(&(layers[7]), 128);
+
+    create_mlp_layer(&(layers[8]), 128, 10);
+    create_tanh_layer(&(layers[9]), 10);
 
     NN nn = {
-        .num_layers = 6,
+        .num_layers = 10,
         .layers = layers
     };
 

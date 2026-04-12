@@ -84,7 +84,7 @@ __global__ void grad_pooling_layer(Layer layer) {
 
             DATA_TYPE input_value = layer.input.d2.input[channel_input_offset + input_y * layer.input.d2.input_dimensions + input_x];
 
-            if(input_value == layer.output.d2.output[channel_output_offset + output_y * layer.output.d2.output_dimensions + output_x] && input_value > 0) {
+            if(input_value == layer.output.d2.output[channel_output_offset + output_y * layer.output.d2.output_dimensions + output_x]) {
                 layer.input.d2.grads[channel_input_offset + input_y * layer.input.d2.input_dimensions + input_x] = layer.output.d2.grads[channel_output_offset + output_y * layer.output.d2.output_dimensions + output_x];
             }
         }

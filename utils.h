@@ -2,9 +2,7 @@
 #define MAIN_H
 
 #define DATA_TYPE float
-
-#define ACTIVATION_FUNCTION_RELU 1
-#define ACTIVATION_FUNCTION_TANH 2
+#define NUM_THREADS 256
 
 void checkCudaError();
 

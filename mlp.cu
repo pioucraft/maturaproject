@@ -56,63 +56,80 @@ int create_mlp_layer(Layer* layer, int input_size, int output_size) {
     return 0;
 }
 
-__global__ void mlp_forward(Layer layer, int activation_function) {
-    int neuron_idx = blockIdx.x;
-    int input_idx = threadIdx.x;
-    int weight_idx = neuron_idx * blockDim.x + threadIdx.x;
+__global__ void mlp_forward(Layer layer) {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    int neuron_idx = idx / layer.input.d1.input_size;
+    int input_idx = idx % layer.input.d1.input_size;
+    int weight_idx = idx;
+
+    if(neuron_idx >= layer.output.d1.output_size) {
+        return;
+    }
 
     if(input_idx == 0) {
         layer.output.d1.output[neuron_idx] = layer.layer.mlp_layer.biases[neuron_idx];
     }
     __syncthreads();
     atomicAdd(&(layer.output.d1.output[neuron_idx]), layer.input.d1.input[input_idx] * layer.layer.mlp_layer.weights[weight_idx]);
-    __syncthreads();
-    if(input_idx == 0) {
-        if(activation_function == ACTIVATION_FUNCTION_RELU && layer.output.d1.output[neuron_idx] < 0) {
-            layer.output.d1.output[neuron_idx] = 0;
-        } else if(activation_function == ACTIVATION_FUNCTION_TANH) {
-            layer.output.d1.output[neuron_idx] = tanh(layer.output.d1.output[neuron_idx]);
-        }
-    }
 }
 
 
 __global__ void zero_grads_mlp_layer(Layer layer) {
-    int neuron_idx = blockIdx.x;
-    int weight_idx = neuron_idx * blockDim.x + threadIdx.x;
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
-    if(threadIdx.x == 0) {
+    int neuron_idx = idx / layer.input.d1.input_size;
+    int input_idx = idx % layer.input.d1.input_size;
+    int weight_idx = idx;
+
+    if(idx >= layer.input.d1.input_size * layer.output.d1.output_size) {
+        return;
+    }
+
+    if(input_idx == 0) {
         layer.layer.mlp_layer.bias_grads[neuron_idx] = (DATA_TYPE)0.0;
     }
     layer.layer.mlp_layer.weight_grads[weight_idx] = (DATA_TYPE)0.0;
 }
 
 __global__ void zero_input_grads_mlp_layer(Layer layer) {
-    layer.input.d1.grads[threadIdx.x] = (DATA_TYPE)0.0;
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if(idx >= layer.input.d1.input_size) {
+        return;
+    }
+
+    layer.input.d1.grads[idx] = (DATA_TYPE)0.0;
 }
 
 __global__ void grad_mlp_layer(Layer layer) {
-    // assume that input and hidden layers always use ReLU activation function
-    int neuron_idx = blockIdx.x;
-    int input_idx = threadIdx.x;
-    int weight_idx = neuron_idx * blockDim.x + threadIdx.x;
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    int neuron_idx = idx / layer.input.d1.input_size;
+    int input_idx = idx % layer.input.d1.input_size;
+    int weight_idx = idx;
 
-    if(threadIdx.x == 0) {
+    if(idx >= layer.input.d1.input_size * layer.output.d1.output_size) {
+        return;
+    }
+
+    if(input_idx == 0) {
         layer.layer.mlp_layer.bias_grads[neuron_idx] += layer.output.d1.grads[neuron_idx];
     }
     layer.layer.mlp_layer.weight_grads[weight_idx] += layer.output.d1.grads[neuron_idx] * layer.input.d1.input[input_idx];
 
     if(layer.input.d1.grads != NULL) {
-        if(layer.input.d1.input[input_idx] > 0) {
-            atomicAdd(&(layer.input.d1.grads[input_idx]), layer.output.d1.grads[neuron_idx] * layer.layer.mlp_layer.weights[weight_idx]);
-        }
+        atomicAdd(&(layer.input.d1.grads[input_idx]), layer.output.d1.grads[neuron_idx] * layer.layer.mlp_layer.weights[weight_idx]);
     }
 }
 
 __global__ void update_mlp_layer(Layer layer, DATA_TYPE learning_rate) {
-    int neuron_idx = blockIdx.x;
-    int input_idx = threadIdx.x;
-    int weight_idx = neuron_idx * blockDim.x + threadIdx.x;
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    int neuron_idx = idx / layer.input.d1.input_size;
+    int input_idx = idx % layer.input.d1.input_size;
+    int weight_idx = idx;
+
+    if(idx >= layer.input.d1.input_size * layer.output.d1.output_size) {
+        return;
+    }
 
     if(threadIdx.x == 0) {
         layer.layer.mlp_layer.biases[neuron_idx] -= learning_rate * layer.layer.mlp_layer.bias_grads[neuron_idx];

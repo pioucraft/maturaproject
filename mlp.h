@@ -9,7 +9,7 @@
 
 int create_mlp_layer(Layer* layer, int input_size, int output_size);
 
-__global__ void mlp_forward(Layer layer, int activation_function);
+__global__ void mlp_forward(Layer layer);
 
 __global__ void zero_grads_mlp_layer(Layer layer);
 

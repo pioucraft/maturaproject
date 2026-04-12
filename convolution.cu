@@ -88,10 +88,6 @@ __global__ void convolution_forward(Layer layer) {
             }
         }
     }
-
-    if(layer.output.d2.output[output_location] < 0) {
-        layer.output.d2.output[output_location] = 0;
-    }
 }
 
 
@@ -143,9 +139,7 @@ __global__ void grad_convolution_layer(Layer layer) {
                 atomicAdd(&(layer.layer.convolution_layer.filter_grads[filter_channel_offset + y * layer.layer.convolution_layer.filter_dimensions + x]), grad_value * input_value);
 
                 if(layer.input.d2.grads != NULL) {
-                    if(input_value > 0) {
-                        atomicAdd(&(layer.input.d2.grads[input_channel_offset + input_y * layer.input.d2.input_dimensions + input_x]), grad_value * layer.layer.convolution_layer.filters[filter_channel_offset + y * layer.layer.convolution_layer.filter_dimensions + x]);
-                    }
+                    atomicAdd(&(layer.input.d2.grads[input_channel_offset + input_y * layer.input.d2.input_dimensions + input_x]), grad_value * layer.layer.convolution_layer.filters[filter_channel_offset + y * layer.layer.convolution_layer.filter_dimensions + x]);
                 }
 
             }
