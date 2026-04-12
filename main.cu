@@ -27,15 +27,15 @@ int main() {
 
     Layer* layers = (Layer*)malloc(sizeof(*layers) * 10);
 
-    create_convolution_layer(&(layers[0]), 28, 26, 3, 20, 1, 20);
-    create_pooling_layer(&(layers[1]), 26, 13, 2, 20);
-    create_relu_layer(&(layers[2]), 13*13*20);
+    create_convolution_layer(&(layers[0]), 28, 26, 3, 32, 1, 32);
+    create_pooling_layer(&(layers[1]), 26, 13, 2, 32);
+    create_relu_layer(&(layers[2]), 13*13*32);
 
-    create_convolution_layer(&(layers[3]), 13, 10, 4, 40, 20, 40);
-    create_pooling_layer(&(layers[4]), 10, 5, 2, 40);
-    create_relu_layer(&(layers[5]), 5*5*40);
+    create_convolution_layer(&(layers[3]), 13, 10, 4, 64, 32, 64);
+    create_pooling_layer(&(layers[4]), 10, 5, 2, 64);
+    create_relu_layer(&(layers[5]), 5*5*64);
 
-    create_mlp_layer(&(layers[6]), 5*5*40, 128);
+    create_mlp_layer(&(layers[6]), 5*5*64, 128);
     create_relu_layer(&(layers[7]), 128);
 
     create_mlp_layer(&(layers[8]), 128, 10);
@@ -96,10 +96,9 @@ int main() {
             grad_nn(&nn, dataset[i].label);
             update_nn(&nn, learning_rate);
         }
+        save_nn(&nn, "model.data");
         
     }
-
-    save_nn(&nn, "model.data");
 
     return 0;
 }
