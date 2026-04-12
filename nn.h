@@ -4,6 +4,8 @@
 #define LAYER_TYPE_MLP 1
 #define LAYER_TYPE_POOLING 2
 #define LAYER_TYPE_CONVOLUTION 3
+#define LAYER_TYPE_RELU 4
+#define LAYER_TYPE_TANH 5
 
 #include "utils.h"
 

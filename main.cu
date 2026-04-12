@@ -7,6 +7,7 @@
 #include "mnist.h"
 #include "nn.h"
 #include "pooling.h"
+#include "relu.h"
 #include "utils.h"
 
 #define NUM_CYCLES 100
