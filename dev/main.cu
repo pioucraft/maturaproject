@@ -96,7 +96,6 @@ int main() {
             grad_nn(&nn, dataset[i].label);
             update_nn(&nn, learning_rate);
         }
-        save_nn(&nn, "model.data");
         
     }
 

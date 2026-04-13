@@ -1,6 +1,6 @@
 #!/bin/sh
 echo "Building the project..."
-nvcc -o main main.cu utils.cu mnist.cu nn.cu mlp.cu pooling.cu convolution.cu relu.cu tanh.cu
+nvcc -o main dev/main.cu dev/utils.cu dev/mnist.cu dev/nn.cu dev/mlp.cu dev/pooling.cu dev/convolution.cu dev/relu.cu dev/tanh.cu
 echo "Running the project..."
 > test_accuracy.data
 time ./main
