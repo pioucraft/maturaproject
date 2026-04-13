@@ -47,7 +47,7 @@ int main() {
     };
 
     create_nn(&nn);
-    load_nn(&nn, "mnist_model.nn");
+    load_nn(&nn, "model.data");
     call_nn(&nn, test_dataset[10000].pixels);
     display_nn_output_mnist(&nn, test_dataset[10000].label);
 
