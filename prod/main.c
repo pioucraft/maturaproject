@@ -5,7 +5,13 @@
 #include <stdio.h>
 #include <arpa/inet.h>
 
+#include "convolution.h"
+#include "mlp.h"
+#include "pooling.h"
+#include "relu.h"
 #include "strings.c"
+#include "tanh.h"
+#include "utils.h"
 
 #define PORT 8080
 #define BUFFER_SIZE 4096
@@ -14,6 +20,8 @@ int server_fd, client_fd;
 struct sockaddr_in addr;
 socklen_t addr_len = sizeof(addr);
 char buffer[BUFFER_SIZE];
+
+NN nn;
 
 void handle_signint(int sig) {
     printf("\nServer shutting down...\n");
@@ -100,6 +108,30 @@ char* web(char* method, char* path, char* version, char** headers, int headers_c
 }
 
 int main(int argc, char *argv[]) {
+    Layer* layers = (Layer*)malloc(sizeof(*layers) * 10);
+
+    create_convolution_layer(&(layers[0]), 28, 26, 3, 32, 1, 32);
+    create_pooling_layer(&(layers[1]), 26, 13, 2, 32);
+    create_relu_layer(&(layers[2]), 13*13*32);
+
+    create_convolution_layer(&(layers[3]), 13, 10, 4, 64, 32, 64);
+    create_pooling_layer(&(layers[4]), 10, 5, 2, 64);
+    create_relu_layer(&(layers[5]), 5*5*64);
+
+    create_mlp_layer(&(layers[6]), 5*5*64, 128);
+    create_relu_layer(&(layers[7]), 128);
+
+    create_mlp_layer(&(layers[8]), 128, 10);
+    create_tanh_layer(&(layers[9]), 10);
+
+    nn = (NN) {
+        .num_layers = 10,
+        .layers = layers
+    };
+
+    create_nn(&nn);
+    load_nn(&nn, "model.data");
+
     signal(SIGINT, handle_signint);
 
     int option = 1;
