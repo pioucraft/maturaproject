@@ -6,4 +6,6 @@
 
 int create_tanh_layer(Layer* layer, int input_size);
 
+int tanh_forward(Layer layer);
+
 #endif

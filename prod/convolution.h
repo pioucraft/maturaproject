@@ -10,4 +10,6 @@ int create_convolution_layer(Layer* layer, int input_dimensions, int output_dime
 
 int load_convolution_layer(Layer* layer, FILE* file);
 
+int convolution_forward(Layer layer);
+
 #endif

@@ -6,4 +6,6 @@
 
 int create_relu_layer(Layer* layer, int input_size);
 
+int relu_forward(Layer layer);
+
 #endif

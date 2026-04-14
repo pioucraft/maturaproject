@@ -13,4 +13,6 @@ int create_nn(NN* nn);
 
 int load_nn(NN* nn, const char* filename);
 
+int call_nn(NN* nn, DATA_TYPE* input);
+
 #endif

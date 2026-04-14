@@ -3,6 +3,10 @@
 
 #include "convolution.h"
 #include "mlp.h"
+#include "pooling.h"
+#include "relu.h"
+#include "tanh.h"
+
 #include "utils.h"
 
 #include "nn.h"
@@ -48,6 +52,31 @@ int load_nn(NN* nn, const char* filename) {
     }
 
     fclose(file);
+
+    return 0;
+}
+
+int call_nn(NN* nn, DATA_TYPE* input) {
+    if(nn->layers[0].layer_type == LAYER_TYPE_MLP || nn->layers[0].layer_type == LAYER_TYPE_RELU || nn->layers[0].layer_type == LAYER_TYPE_TANH) { // 1d input and 1d output
+        nn->layers[0].input.d1.input = input;
+    } else if(nn->layers[0].layer_type == LAYER_TYPE_POOLING || nn->layers[0].layer_type == LAYER_TYPE_CONVOLUTION) { // 2d input and 2d output
+        nn->layers[0].input.d2.input = input;
+    }
+
+    for(int i = 0; i < nn->num_layers; i++) {
+        Layer layer = nn->layers[i];
+        if(layer.layer_type == LAYER_TYPE_MLP) {
+            mlp_forward(layer);
+        } else if(layer.layer_type == LAYER_TYPE_CONVOLUTION) {
+            convolution_forward(layer);
+        } else if(layer.layer_type == LAYER_TYPE_POOLING) {
+            pooling_forward(layer);
+        } else if(layer.layer_type == LAYER_TYPE_RELU) {
+            relu_forward(layer);
+        } else if(layer.layer_type == LAYER_TYPE_TANH) {
+            tanh_forward(layer);
+        }
+    }
 
     return 0;
 }

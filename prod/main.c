@@ -92,16 +92,22 @@ char* return_html_file(char* filepath) {
 
 char* web(char* method, char* path, char* version, char** headers, int headers_count, char* body) {
     if(strcmp(method, "POST") == 0 && strcmp(path, "/predict") == 0) {
-        printf("Received POST request to /predict with body:\n%s\n", body);
-        FILE* file = fopen("mnist/t10k-images.idx3-ubyte", "ab");
+        DATA_TYPE* input_data = malloc(28 * 28 * sizeof(DATA_TYPE));
+        for(int i = 0; i < 28 * 28; i++) {
+            input_data[i] = body[i] == '0' ? -1.0 : 1.0;
+        }
+        call_nn(&nn, input_data);
+        for(int i = 0; i < 10; i++) {
+            printf("%d: %f\n", i, nn.layers[8].output.d1.output[i]);
+        }
+
+        printf("Input :\n");
         for(int i = 0; i < 28; i++) {
             for(int j = 0; j < 28; j++) {
-                fprintf(file, "%c", body[i * 28 + j] == '1' ? 255 : 0);
+                printf("%c ", input_data[i * 28 + j] == -1.0 ? ' ' : '#');
             }
             printf("\n");
         }
-        FILE* label_file = fopen("mnist/t10k-labels.idx1-ubyte", "ab");
-        fprintf(label_file, "%c", 8);
     }
 
     return return_html_file("prod/index.html");

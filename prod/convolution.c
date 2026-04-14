@@ -52,3 +52,30 @@ int load_convolution_layer(Layer* layer, FILE* file) {
 
     return 0;
 }
+
+int convolution_forward(Layer layer) {
+    for(int f = 0; f < layer.layer.convolution_layer.filters_num; f++) {
+        for(int o_x = 0; o_x < layer.output.d2.output_dimensions; o_x++) {
+            for(int o_y = 0; o_y < layer.output.d2.output_dimensions; o_y++) {
+                DATA_TYPE sum = layer.layer.convolution_layer.biases[f];
+                for(int c = 0; c < layer.num_in_channels; c++) {
+                    for(int f_x = 0; f_x < layer.layer.convolution_layer.filter_dimensions; f_x++) {
+                        for(int f_y = 0; f_y < layer.layer.convolution_layer.filter_dimensions; f_y++) {
+                            int i_x = o_x + f_x;
+                            int i_y = o_y + f_y;
+
+                            int input_index = c * layer.input.d2.input_dimensions * layer.input.d2.input_dimensions + i_y * layer.input.d2.input_dimensions + i_x;
+                            int filter_index = f * layer.num_in_channels * layer.layer.convolution_layer.filter_dimensions * layer.layer.convolution_layer.filter_dimensions + c * layer.layer.convolution_layer.filter_dimensions * layer.layer.convolution_layer.filter_dimensions + f_y * layer.layer.convolution_layer.filter_dimensions + f_x;
+
+                            sum += layer.input.d2.input[input_index] * layer.layer.convolution_layer.filters[filter_index];
+                        }
+                    }
+                }
+                int output_index = f * layer.output.d2.output_dimensions * layer.output.d2.output_dimensions + o_y * layer.output.d2.output_dimensions + o_x;
+                layer.output.d2.output[output_index] = sum;
+            }
+        }
+    }
+
+    return 0;
+}
