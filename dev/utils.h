@@ -4,6 +4,8 @@
 #define DATA_TYPE float
 #define NUM_THREADS 256
 
+#include <curand_kernel.h>
+
 void checkCudaError();
 
 typedef struct Convolution_Layer {
@@ -28,6 +30,11 @@ typedef struct MLP_Layer {
     DATA_TYPE* weight_grads;
     DATA_TYPE* bias_grads;
 } MLP_Layer;
+
+typedef struct Dropout_Layer {
+    DATA_TYPE dropout_rate;
+    curandState_t* random_states;
+} Dropout_Layer;
 
 typedef struct Layer {
     int layer_type;
@@ -65,6 +72,7 @@ typedef struct Layer {
         MLP_Layer mlp_layer;
         Pooling_Layer pooling_layer;
         Convolution_Layer convolution_layer;
+        Dropout_Layer dropout_layer;
     } layer;
 } Layer;
 

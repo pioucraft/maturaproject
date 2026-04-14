@@ -3,6 +3,7 @@
 #include <cuda_runtime.h>
 
 #include "convolution.h"
+#include "dropout.h"
 #include "mlp.h"
 #include "mnist.h"
 #include "nn.h"
@@ -25,36 +26,37 @@ int main() {
     MNIST_Image* test_dataset;
     load_mnist_dataset("mnist/t10k-images.idx3-ubyte", "mnist/t10k-labels.idx1-ubyte", &test_dataset, TEST_DATASET_SIZE);
 
-    Layer* layers = (Layer*)malloc(sizeof(*layers) * 10);
+    Layer* layers = (Layer*)malloc(sizeof(*layers) * 11);
 
-    create_convolution_layer(&(layers[0]), 28, 26, 3, 32, 1, 32);
-    create_pooling_layer(&(layers[1]), 26, 13, 2, 32);
-    create_relu_layer(&(layers[2]), 13*13*32);
+    int multiplier = 16;
+    create_convolution_layer(&(layers[0]), 28, 26, 3, 1*multiplier, 1, 1*multiplier);
+    create_pooling_layer(&(layers[1]), 26, 13, 2, 1*multiplier);
+    create_relu_layer(&(layers[2]), 13*13*1*multiplier);
 
-    create_convolution_layer(&(layers[3]), 13, 10, 4, 64, 32, 64);
-    create_pooling_layer(&(layers[4]), 10, 5, 2, 64);
-    create_relu_layer(&(layers[5]), 5*5*64);
+    create_convolution_layer(&(layers[3]), 13, 10, 4, 2*multiplier, 1*multiplier, 2*multiplier);
+    create_pooling_layer(&(layers[4]), 10, 5, 2, 2*multiplier);
+    create_relu_layer(&(layers[5]), 5*5*2*multiplier);
+    create_dropout_layer(&(layers[6]), 5*5*2*multiplier, 0.5f);
 
-    create_mlp_layer(&(layers[6]), 5*5*64, 128);
-    create_relu_layer(&(layers[7]), 128);
+    create_mlp_layer(&(layers[7]), 5*5*2*multiplier, 128);
+    create_relu_layer(&(layers[8]), 128);
 
-    create_mlp_layer(&(layers[8]), 128, 10);
-    create_tanh_layer(&(layers[9]), 10);
+    create_mlp_layer(&(layers[9]), 128, 10);
+    create_tanh_layer(&(layers[10]), 10);
 
     NN nn = {
-        .num_layers = 10,
+        .num_layers = 11,
         .layers = layers
     };
 
     create_nn(&nn);
-    load_nn(&nn, "model.data");
 
     for(int cycle = 0; cycle < NUM_CYCLES; cycle++) {
         printf("Cycle %d\n", cycle);
 
         int correct_predictions = 0;
         for(int i = 0; i < TEST_DATASET_SIZE; i++) {
-            call_nn(&nn, test_dataset[i].pixels);
+            call_nn(&nn, test_dataset[i].pixels, 0);
             DATA_TYPE output[10];
             cudaMemcpy(output, nn.layers[nn.num_layers - 1].output.d1.output, 10 * sizeof(DATA_TYPE), cudaMemcpyDeviceToHost);
 
@@ -93,7 +95,7 @@ int main() {
             if((i) % 10000 == 0) {
                 printf("Processing image %d\n", i );
             }
-            call_nn(&nn, dataset[i].pixels);
+            call_nn(&nn, dataset[i].pixels, 1);
             grad_nn(&nn, dataset[i].label);
             update_nn(&nn, learning_rate);
         }
