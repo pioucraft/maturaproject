@@ -54,10 +54,10 @@
             }
 
             window.addEventListener("mousedown", function() {
+                mouseDown = true;
                 if(event.target.classList.contains('cell')) {
                     addCell(event.target);
                 }
-                mouseDown = true;
             });
 
             window.addEventListener("mouseup", function() {
@@ -91,9 +91,16 @@
                 let result = await response.text();
                 result = result.split(',');
                 let resultsDiv = document.getElementById('results');
+                let maxResult = -Infinity;
+                let maxIndex = -1;
                 for(let i = 0; i < result.length; i++) {
-                    resultsDiv.innerHTML += `Digit ${i}: ${result[i]}<br>`;
+                    let value = parseFloat(result[i]);
+                    if(value > maxResult) {
+                        maxResult = value;
+                        maxIndex = i;
+                    }
                 }
+                resultsDiv.innerHTML = `Predicted digit: ${maxIndex}`;
             }
         </script>
     </body>
