@@ -93,21 +93,26 @@ char* return_html_file(char* filepath) {
 char* web(char* method, char* path, char* version, char** headers, int headers_count, char* body) {
     if(strcmp(method, "POST") == 0 && strcmp(path, "/predict") == 0) {
         DATA_TYPE* input_data = malloc(28 * 28 * sizeof(DATA_TYPE));
+        char* part = strtok_multi(body, ",");
         for(int i = 0; i < 28 * 28; i++) {
-            input_data[i] = body[i] == '0' ? -1.0 : 1.0;
+            input_data[i] = (DATA_TYPE)atoi(part) / (DATA_TYPE)255.0;
+            part = strtok_multi(NULL, ",");
         }
         call_nn(&nn, input_data);
-        for(int i = 0; i < 10; i++) {
-            printf("%d: %f\n", i, nn.layers[8].output.d1.output[i]);
-        }
 
-        printf("Input :\n");
-        for(int i = 0; i < 28; i++) {
-            for(int j = 0; j < 28; j++) {
-                printf("%c ", input_data[i * 28 + j] == -1.0 ? ' ' : '#');
+        char* output = malloc(1000 * sizeof(char));
+        output[0] = '\0';
+        for(int i = 0; i < 10; i++) {
+            char buffer[50];
+            sprintf(buffer, "%f", nn.layers[nn.num_layers - 1].output.d1.output[i]);
+            output = realloc(output, strlen(output) + strlen(buffer) + 2);
+            strcat(output, buffer);
+            if(i < 9) {
+                strcat(output, ",");
             }
-            printf("\n");
         }
+        char* toReturn = response("200 OK", NULL, 0, output);
+        return toReturn;
     }
 
     return return_html_file("prod/index.html");

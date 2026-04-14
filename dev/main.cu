@@ -13,7 +13,7 @@
 
 #define NUM_CYCLES 100
 #define DATASET_SIZE 60000
-#define TEST_DATASET_SIZE 10001
+#define TEST_DATASET_SIZE 10000
 #define LEARNING_RATE 1e-3
 
 int main() {
@@ -48,8 +48,6 @@ int main() {
 
     create_nn(&nn);
     load_nn(&nn, "model.data");
-    call_nn(&nn, test_dataset[10000].pixels);
-    display_nn_output_mnist(&nn, test_dataset[10000].label);
 
     for(int cycle = 0; cycle < NUM_CYCLES; cycle++) {
         printf("Cycle %d\n", cycle);

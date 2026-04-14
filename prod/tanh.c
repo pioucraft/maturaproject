@@ -23,7 +23,7 @@ int create_tanh_layer(Layer* layer, int input_size) {
 int tanh_forward(Layer layer) {
     for(int i = 0; i < layer.input.d1.input_size; i++) {
         DATA_TYPE value = layer.input.d1.input[i];
-        layer.output.d1.output[i] = tanhf(value);
+        layer.output.d1.output[i] = tanh(value);
     }
     return 0;
 }

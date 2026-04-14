@@ -7,6 +7,7 @@
     <body>
         <div id="canvas"></div>
         <button onclick="predict()">Predict</button>
+        <div id="results"></div>
         <script>
             let canvasElement = document.getElementById('canvas');
             let cells = [];
@@ -25,7 +26,7 @@
                     cell.style.border = '1px solid gray';
                     cell.style.backgroundColor = 'white';
                     cell.id = `cell-${i}-${j}`;
-                    cells[i].push(false);
+                    cells[i].push(0);
                 }
                 canvasElement.appendChild(row);
             }
@@ -33,18 +34,22 @@
             var mouseDown = false;
 
             function addCell(cell) {
-                cell.style.backgroundColor = 'black';
-
                 let id = cell.id.split('-');
                 let i = parseInt(id[1]);
                 let j = parseInt(id[2]);
-                cells[i][j] = true;
-            }
 
-            function clear() {
-                let cells = document.getElementsByClassName('cell');
-                for(let cell of cells) {
-                    cell.style.backgroundColor = 'white';
+                for(let x = -1; x <= 1; x++) {
+                    for(let y = -1; y <= 1; y++) {
+                        let newI = i + x;
+                        let newJ = j + y;
+                        if(newI >= 0 && newI < 28 && newJ >= 0 && newJ < 28) {
+                            let value = 255 - (Math.abs(x) + Math.abs(y)) * 70;
+                            let cellElement = document.getElementById(`cell-${newI}-${newJ}`);
+                            cells[newI][newJ] = Math.max(cells[newI][newJ], value);
+                            cellElement.style.backgroundColor = "black";
+                            cellElement.style.opacity = cells[newI][newJ] / 255;
+                        }
+                    }
                 }
             }
 
@@ -68,20 +73,27 @@
                 }
             });
 
-            function predict() {
+            async function predict() {
                 let body = "";
                 for(let i = 0; i < 28; i++) {
                     for(let j = 0; j < 28; j++) {
-                        body += cells[i][j] ? "1" : "0";
+                        body += cells[i][j] + ",";
                     }
                 }
-                fetch('/predict', {
+                let response = await fetch('/predict', {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json'
+                        'Content-Type': 'application/text'
                     },
                     body: body
                 })
+
+                let result = await response.text();
+                result = result.split(',');
+                let resultsDiv = document.getElementById('results');
+                for(let i = 0; i < result.length; i++) {
+                    resultsDiv.innerHTML += `Digit ${i}: ${result[i]}<br>`;
+                }
             }
         </script>
     </body>

@@ -58,7 +58,7 @@ int mlp_forward(Layer layer) {
     for(int o = 0; o < layer.output.d1.output_size; o++) {
         DATA_TYPE sum = layer.layer.mlp_layer.biases[o];
         for(int i = 0; i < layer.input.d1.input_size; i++) {
-            sum += layer.input.d1.input[i] * layer.layer.mlp_layer.weights[i * layer.output.d1.output_size + o];
+            sum += layer.input.d1.input[i] * layer.layer.mlp_layer.weights[o * layer.input.d1.input_size + i];
         }
         layer.output.d1.output[o] = sum;
     }
