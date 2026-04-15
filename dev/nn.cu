@@ -50,7 +50,7 @@ __global__ void bias_forward(DATA_TYPE* outputs, DATA_TYPE* biases, int output_s
     }
 }
 
-int call_nn(NN* nn, DATA_TYPE* input, int run_dropout, int batch_index) {
+int call_nn(NN* nn, DATA_TYPE* input, int run_dropout) {
     if(nn->layers[0].layer_type == LAYER_TYPE_MLP || nn->layers[0].layer_type == LAYER_TYPE_RELU || nn->layers[0].layer_type == LAYER_TYPE_TANH || nn->layers[0].layer_type == LAYER_TYPE_DROPOUT) { // 1d input and 1d output
         nn->layers[0].input.d1.input = input;
     } else if(nn->layers[0].layer_type == LAYER_TYPE_POOLING || nn->layers[0].layer_type == LAYER_TYPE_CONVOLUTION) { // 2d input and 2d output
@@ -84,7 +84,7 @@ int call_nn(NN* nn, DATA_TYPE* input, int run_dropout, int batch_index) {
             cudaDeviceSynchronize();
         } else if(layer.layer_type == LAYER_TYPE_DROPOUT) {
             int num_blocks = layer.output.d1.output_size / NUM_THREADS + 1;
-            dropout_forward<<<num_blocks, NUM_THREADS>>>(layer, run_dropout, batch_index);
+            dropout_forward<<<num_blocks, NUM_THREADS>>>(layer, run_dropout);
             cudaDeviceSynchronize();
         }
     }
@@ -105,7 +105,7 @@ __global__ void zero_grads_layer_1d_output(Layer layer) {
 __global__ void zero_grads_layer_2d_output(Layer layer) {
     int output_idx = blockIdx.x * blockDim.x + threadIdx.x;
 
-    if(output_idx < layer.output.d2.output_dimensions * layer.output.d2.output_dimensions) {
+    if(output_idx < layer.output.d2.output_dimensions * layer.output.d2.output_dimensions * layer.num_out_channels) {
         layer.output.d2.grads[output_idx] = (DATA_TYPE)0.0;
     }
 }
@@ -143,7 +143,7 @@ __global__ void grad_error(Layer output_layer, DATA_TYPE* expected_output) {
     output_layer.output.d1.grads[output_idx] = error_grad;
 }
 
-int grad_nn(NN* nn, DATA_TYPE* expected_output, int batch_index) {
+int grad_nn(NN* nn, DATA_TYPE* expected_output) {
     for(int i = nn->num_layers - 1; i >= 0; i--) {
         Layer layer = nn->layers[i];
         if(i == nn->num_layers - 1) {
@@ -200,7 +200,7 @@ int grad_nn(NN* nn, DATA_TYPE* expected_output, int batch_index) {
                 cudaDeviceSynchronize();
             }
             int num_blocks = layer.output.d1.output_size / NUM_THREADS + 1;
-            grad_dropout_layer<<<num_blocks, NUM_THREADS>>>(layer, batch_index);
+            grad_dropout_layer<<<num_blocks, NUM_THREADS>>>(layer);
         }
         cudaDeviceSynchronize();
     }

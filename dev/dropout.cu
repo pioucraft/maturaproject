@@ -17,7 +17,7 @@ __global__ void setup_random_states(curandState_t *state, int seed, int size) {
     curand_init(seed, idx, 0, &state[idx]);
 }
 
-int create_dropout_layer(Layer* layer, int input_size, int batch_size, DATA_TYPE dropout_rate) {
+int create_dropout_layer(Layer* layer, int input_size, DATA_TYPE dropout_rate) {
     curandState_t *random_states;
     cudaMalloc(&random_states, input_size * sizeof(curandState_t));
     setup_random_states<<<input_size / NUM_THREADS + 1, NUM_THREADS>>>(random_states, 42, input_size);
@@ -25,7 +25,7 @@ int create_dropout_layer(Layer* layer, int input_size, int batch_size, DATA_TYPE
     checkCudaError();
 
     unsigned char* mask;
-    cudaMalloc(&mask, input_size * batch_size * sizeof(unsigned char));
+    cudaMalloc(&mask, input_size * sizeof(unsigned char));
 
     *layer = {
         .layer_type = LAYER_TYPE_DROPOUT,
@@ -52,7 +52,7 @@ int create_dropout_layer(Layer* layer, int input_size, int batch_size, DATA_TYPE
     return 0;
 }
 
-__global__ void dropout_forward(Layer layer, int run_dropout, int batch_index) {
+__global__ void dropout_forward(Layer layer, int run_dropout) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
     if(idx >= layer.output.d1.output_size) {
@@ -71,10 +71,10 @@ __global__ void dropout_forward(Layer layer, int run_dropout, int batch_index) {
 
     if(random_value > layer.layer.dropout_layer.dropout_rate) {
         layer.output.d1.output[idx] = 1.0 / (1.0 - layer.layer.dropout_layer.dropout_rate) * layer.input.d1.input[idx];
-        layer.layer.dropout_layer.mask[batch_index * layer.input.d1.input_size + idx] = 1;
+        layer.layer.dropout_layer.mask[idx] = 1;
     } else {
         layer.output.d1.output[idx] = (DATA_TYPE)0.0;
-        layer.layer.dropout_layer.mask[batch_index * layer.input.d1.input_size + idx] = 0;
+        layer.layer.dropout_layer.mask[idx] = 0;
     }
 }
 
@@ -88,14 +88,14 @@ __global__ void zero_input_grads_dropout_layer(Layer layer) {
     layer.input.d1.grads[idx] = (DATA_TYPE)0.0;
 }
 
-__global__ void grad_dropout_layer(Layer layer, int batch_index) {
+__global__ void grad_dropout_layer(Layer layer) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
     if(idx >= layer.input.d1.input_size) {
         return;
     }
 
-    if(layer.layer.dropout_layer.mask[batch_index * layer.input.d1.input_size + idx]) {
+    if(layer.layer.dropout_layer.mask[idx]) {
         layer.input.d1.grads[idx] = 1.0 / (1.0 - layer.layer.dropout_layer.dropout_rate) * layer.output.d1.grads[idx];
     }
 }

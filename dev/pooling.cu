@@ -44,7 +44,7 @@ __global__ void pooling_forward(Layer layer) {
         return;
     }
 
-    layer.output.d2.output[channel_output_offset + output_y * layer.output.d2.output_dimensions + output_x] = (DATA_TYPE)0.0;
+    layer.output.d2.output[channel_output_offset + output_y * layer.output.d2.output_dimensions + output_x] = (DATA_TYPE)-INFINITY;
     for(int x = 0; x < layer.layer.pooling_layer.pool_dimensions; x++) {
         for(int y = 0; y < layer.layer.pooling_layer.pool_dimensions; y++) {
 
