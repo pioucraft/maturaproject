@@ -12,11 +12,11 @@
 #include "tanh.h"
 #include "utils.h"
 
-#define NUM_CYCLES 100
+#define NUM_CYCLES 50
 #define DATASET_SIZE 60000
 #define TEST_DATASET_SIZE 10000
 #define BATCH_SIZE 64
-#define LEARNING_RATE 1e-2
+#define LEARNING_RATE 5e-2
 
 int main() {
     printf("Hello, CUDA!\n");
