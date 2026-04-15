@@ -14,12 +14,12 @@ int create_mlp_layer(Layer* layer, int input_size, int output_size) {
     cudaMalloc(&biases, output_size * sizeof(DATA_TYPE));
 
     for(int i = 0; i < input_size * output_size; i++) {
-        DATA_TYPE weight = (DATA_TYPE)((DATA_TYPE)rand() / RAND_MAX * 0.5 - 0.25);
+        DATA_TYPE weight = (DATA_TYPE)((DATA_TYPE)rand() / RAND_MAX * 0.25 - 0.125);
         cudaMemcpy(weights + i, &weight, sizeof(DATA_TYPE), cudaMemcpyHostToDevice);
     }
 
     for(int i = 0; i < output_size; i++) {
-        DATA_TYPE bias = (DATA_TYPE)((DATA_TYPE)rand() / RAND_MAX * 0.5 - 0.25);
+        DATA_TYPE bias = (DATA_TYPE)((DATA_TYPE)rand() / RAND_MAX * 0.25 - 0.125);
         cudaMemcpy(biases + i, &bias, sizeof(DATA_TYPE), cudaMemcpyHostToDevice);
     }
 
