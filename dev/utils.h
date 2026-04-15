@@ -34,6 +34,7 @@ typedef struct MLP_Layer {
 typedef struct Dropout_Layer {
     DATA_TYPE dropout_rate;
     curandState_t* random_states;
+    unsigned char* mask;
 } Dropout_Layer;
 
 typedef struct Layer {

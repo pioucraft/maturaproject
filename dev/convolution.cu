@@ -60,6 +60,7 @@ int create_convolution_layer(Layer* layer, int input_dimensions, int output_dime
 
 __global__ void convolution_forward(Layer layer) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
+
     int output_channel = idx / (layer.output.d2.output_dimensions * layer.output.d2.output_dimensions);
     int filter = output_channel;
 
@@ -115,6 +116,10 @@ __global__ void zero_grads_convolution_layer(Layer layer) {
 
 __global__ void zero_input_grads_convolution_layer(Layer layer) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if(idx >= layer.num_in_channels * layer.input.d2.input_dimensions * layer.input.d2.input_dimensions) {
+        return;
+    }
 
     layer.input.d2.grads[idx] = (DATA_TYPE)0.0;
 }

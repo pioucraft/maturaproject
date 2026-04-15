@@ -28,7 +28,7 @@ int main() {
 
     Layer* layers = (Layer*)malloc(sizeof(*layers) * 11);
 
-    int multiplier = 16;
+    int multiplier = 24;
     create_convolution_layer(&(layers[0]), 28, 26, 3, 1*multiplier, 1, 1*multiplier);
     create_pooling_layer(&(layers[1]), 26, 13, 2, 1*multiplier);
     create_relu_layer(&(layers[2]), 13*13*1*multiplier);
@@ -36,10 +36,10 @@ int main() {
     create_convolution_layer(&(layers[3]), 13, 10, 4, 2*multiplier, 1*multiplier, 2*multiplier);
     create_pooling_layer(&(layers[4]), 10, 5, 2, 2*multiplier);
     create_relu_layer(&(layers[5]), 5*5*2*multiplier);
-    create_dropout_layer(&(layers[6]), 5*5*2*multiplier, 0.5f);
 
-    create_mlp_layer(&(layers[7]), 5*5*2*multiplier, 128);
-    create_relu_layer(&(layers[8]), 128);
+    create_mlp_layer(&(layers[6]), 5*5*2*multiplier, 128);
+    create_relu_layer(&(layers[7]), 128);
+    create_dropout_layer(&(layers[8]), 128, 0.5f);
 
     create_mlp_layer(&(layers[9]), 128, 10);
     create_tanh_layer(&(layers[10]), 10);

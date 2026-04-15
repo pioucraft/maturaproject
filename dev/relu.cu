@@ -41,6 +41,10 @@ __global__ void relu_forward(Layer layer) {
 __global__ void zero_input_grads_relu_layer(Layer layer) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
+    if(idx >= layer.input.d1.input_size) {
+        return;
+    }
+
     layer.input.d1.grads[idx] = (DATA_TYPE)0.0;
 }
 
