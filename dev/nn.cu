@@ -50,7 +50,7 @@ __global__ void bias_forward(DATA_TYPE* outputs, DATA_TYPE* biases, int output_s
     }
 }
 
-int call_nn(NN* nn, DATA_TYPE* input, int run_dropout) {
+int call_nn(NN* nn, DATA_TYPE* input, int run_dropout, int batch_index) {
     if(nn->layers[0].layer_type == LAYER_TYPE_MLP || nn->layers[0].layer_type == LAYER_TYPE_RELU || nn->layers[0].layer_type == LAYER_TYPE_TANH || nn->layers[0].layer_type == LAYER_TYPE_DROPOUT) { // 1d input and 1d output
         nn->layers[0].input.d1.input = input;
     } else if(nn->layers[0].layer_type == LAYER_TYPE_POOLING || nn->layers[0].layer_type == LAYER_TYPE_CONVOLUTION) { // 2d input and 2d output
@@ -84,7 +84,7 @@ int call_nn(NN* nn, DATA_TYPE* input, int run_dropout) {
             cudaDeviceSynchronize();
         } else if(layer.layer_type == LAYER_TYPE_DROPOUT) {
             int num_blocks = layer.output.d1.output_size / NUM_THREADS + 1;
-            dropout_forward<<<num_blocks, NUM_THREADS>>>(layer, run_dropout);
+            dropout_forward<<<num_blocks, NUM_THREADS>>>(layer, run_dropout, batch_index);
             cudaDeviceSynchronize();
         }
     }
@@ -143,7 +143,7 @@ __global__ void grad_error(Layer output_layer, DATA_TYPE* expected_output) {
     output_layer.output.d1.grads[output_idx] = error_grad;
 }
 
-int grad_nn(NN* nn, DATA_TYPE* expected_output) {
+int grad_nn(NN* nn, DATA_TYPE* expected_output, int batch_index) {
     for(int i = nn->num_layers - 1; i >= 0; i--) {
         Layer layer = nn->layers[i];
         if(i == nn->num_layers - 1) {
@@ -200,7 +200,7 @@ int grad_nn(NN* nn, DATA_TYPE* expected_output) {
                 cudaDeviceSynchronize();
             }
             int num_blocks = layer.output.d1.output_size / NUM_THREADS + 1;
-            grad_dropout_layer<<<num_blocks, NUM_THREADS>>>(layer);
+            grad_dropout_layer<<<num_blocks, NUM_THREADS>>>(layer, batch_index);
         }
         cudaDeviceSynchronize();
     }

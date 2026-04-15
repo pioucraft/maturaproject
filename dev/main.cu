@@ -15,7 +15,8 @@
 #define NUM_CYCLES 100
 #define DATASET_SIZE 60000
 #define TEST_DATASET_SIZE 10000
-#define LEARNING_RATE 1e-3
+#define BATCH_SIZE 64
+#define LEARNING_RATE (1e-3 / (DATA_TYPE)BATCH_SIZE)
 
 int main() {
     printf("Hello, CUDA!\n");
@@ -39,7 +40,8 @@ int main() {
 
     create_mlp_layer(&(layers[6]), 5*5*2*multiplier, 128);
     create_relu_layer(&(layers[7]), 128);
-    create_dropout_layer(&(layers[8]), 128, 0.5f);
+    create_dropout_layer(&(layers[8]), 128, BATCH_SIZE, 0.0f);
+    //create_relu_layer(&(layers[8]), 128);
 
     create_mlp_layer(&(layers[9]), 128, 10);
     create_tanh_layer(&(layers[10]), 10);
@@ -56,7 +58,7 @@ int main() {
 
         int correct_predictions = 0;
         for(int i = 0; i < TEST_DATASET_SIZE; i++) {
-            call_nn(&nn, test_dataset[i].pixels, 0);
+            call_nn(&nn, test_dataset[i].pixels, 0, 0);
             DATA_TYPE output[10];
             cudaMemcpy(output, nn.layers[nn.num_layers - 1].output.d1.output, 10 * sizeof(DATA_TYPE), cudaMemcpyDeviceToHost);
 
@@ -89,14 +91,15 @@ int main() {
 
         DATA_TYPE learning_rate = LEARNING_RATE * (1.0f - (float)cycle / NUM_CYCLES);
 
-
-        for(int i = 0; i < DATASET_SIZE; i ++) {
+        for(int i = 0; i < DATASET_SIZE - BATCH_SIZE; i += BATCH_SIZE) {
             zero_grads_nn(&nn);
-            if((i) % 10000 == 0) {
-                printf("Processing image %d\n", i );
+            for(int j = 0; j < BATCH_SIZE; j++) {
+                call_nn(&nn, dataset[i + j].pixels, 1, j);
+                grad_nn(&nn, dataset[i + j].label, j);
+                if((i + j) % 10000 == 0) {
+                    printf("Processed %d samples\n", i + j);
+                }
             }
-            call_nn(&nn, dataset[i].pixels, 1);
-            grad_nn(&nn, dataset[i].label);
             update_nn(&nn, learning_rate);
         }
         save_nn(&nn, "model.data");

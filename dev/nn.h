@@ -12,11 +12,11 @@
 
 int create_nn(NN* nn);
 
-int call_nn(NN* nn, DATA_TYPE* input, int run_dropout);
+int call_nn(NN* nn, DATA_TYPE* input, int run_dropout, int batch_index);
 
 int zero_grads_nn(NN* nn);
 
-int grad_nn(NN* nn, DATA_TYPE* expected_output);
+int grad_nn(NN* nn, DATA_TYPE* expected_output, int batch_index);
 
 int update_nn(NN* nn, DATA_TYPE learning_rate);
 
