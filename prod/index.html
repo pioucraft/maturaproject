@@ -43,7 +43,7 @@
                         let newI = i + x;
                         let newJ = j + y;
                         if(newI >= 0 && newI < 28 && newJ >= 0 && newJ < 28) {
-                            let value = 255 - (Math.abs(x) + Math.abs(y)) * 70;
+                            let value = 255 // - (Math.abs(x) + Math.abs(y)) * 70;
                             let cellElement = document.getElementById(`cell-${newI}-${newJ}`);
                             cells[newI][newJ] = Math.max(cells[newI][newJ], value);
                             cellElement.style.backgroundColor = "black";
