@@ -12,7 +12,7 @@
 #include "tanh.h"
 #include "utils.h"
 
-#define NUM_CYCLES 50
+#define NUM_CYCLES 100
 #define DATASET_SIZE 60000
 #define TEST_DATASET_SIZE 10000
 #define BATCH_SIZE 64
@@ -27,27 +27,29 @@ int main() {
     MNIST_Image* test_dataset;
     load_mnist_dataset("mnist/t10k-images.idx3-ubyte", "mnist/t10k-labels.idx1-ubyte", &test_dataset, TEST_DATASET_SIZE);
 
-    Layer* layers = (Layer*)malloc(sizeof(*layers) * 11);
+    Layer* layers = (Layer*)malloc(sizeof(*layers) * 13);
 
     int multiplier = 32;
     create_convolution_layer(&(layers[0]), 28, 26, 3, 1*multiplier, 1, 1*multiplier);
     create_pooling_layer(&(layers[1]), 26, 13, 2, 1*multiplier);
     create_relu_layer(&(layers[2]), 13*13*1*multiplier);
+    create_dropout_layer(&(layers[3]), 13*13*1*multiplier, 0.25f);
 
-    create_convolution_layer(&(layers[3]), 13, 10, 4, 2*multiplier, 1*multiplier, 2*multiplier);
-    create_pooling_layer(&(layers[4]), 10, 5, 2, 2*multiplier);
-    create_relu_layer(&(layers[5]), 5*5*2*multiplier);
+    create_convolution_layer(&(layers[4]), 13, 10, 4, 2*multiplier, 1*multiplier, 2*multiplier);
+    create_pooling_layer(&(layers[5]), 10, 5, 2, 2*multiplier);
+    create_relu_layer(&(layers[6]), 5*5*2*multiplier);
+    create_dropout_layer(&(layers[7]), 5*5*2*multiplier, 0.25f);
 
-    create_mlp_layer(&(layers[6]), 5*5*2*multiplier, 128);
-    create_relu_layer(&(layers[7]), 128);
-    create_dropout_layer(&(layers[8]), 128, 0.5f);
+    create_mlp_layer(&(layers[8]), 5*5*2*multiplier, 128);
+    create_relu_layer(&(layers[9]), 128);
+    create_dropout_layer(&(layers[10]), 128, 0.5f);
     // create_relu_layer(&(layers[8]), 128);
 
-    create_mlp_layer(&(layers[9]), 128, 10);
-    create_tanh_layer(&(layers[10]), 10);
+    create_mlp_layer(&(layers[11]), 128, 10);
+    create_tanh_layer(&(layers[12]), 10);
 
     NN nn = {
-        .num_layers = 11,
+        .num_layers = 13,
         .layers = layers
     };
 
