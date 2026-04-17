@@ -12,17 +12,17 @@
             let canvasElement = document.getElementById('canvas');
             let cells = [];
 
-            for(let i = 0; i < 28; i++) {
+            for(let i = 0; i < 28*3; i++) {
                 let row = document.createElement('div');
                 row.classList.add('row');
                 row.style.display = 'flex';
                 cells.push([]);
-                for(let j = 0; j < 28; j++) {
+                for(let j = 0; j < 28*3; j++) {
                     let cell = document.createElement('div');
                     cell.classList.add('cell');
                     row.appendChild(cell);
-                    cell.style.width = '20px';
-                    cell.style.height = '20px';
+                    cell.style.width = '7px';
+                    cell.style.height = '7px';
                     cell.style.border = '1px solid gray';
                     cell.style.backgroundColor = 'white';
                     cell.id = `cell-${i}-${j}`;
@@ -38,12 +38,13 @@
                 let i = parseInt(id[1]);
                 let j = parseInt(id[2]);
 
-                for(let x = -1; x <= 1; x++) {
-                    for(let y = -1; y <= 1; y++) {
+                let thickness = 2;
+                for(let x = -thickness; x <= thickness; x++) {
+                    for(let y = -thickness; y <= thickness; y++) {
                         let newI = i + x;
                         let newJ = j + y;
-                        if(newI >= 0 && newI < 28 && newJ >= 0 && newJ < 28) {
-                            let value = 255 // - (Math.abs(x) + Math.abs(y)) * 70;
+                        if(newI >= 0 && newI < 28*3 && newJ >= 0 && newJ < 28*3 && (Math.abs(x) + Math.abs(y)) <= thickness * 1.5) {
+                            let value = 255 - (Math.abs(x) + Math.abs(y)) * (255 / (thickness * 4));
                             let cellElement = document.getElementById(`cell-${newI}-${newJ}`);
                             cells[newI][newJ] = Math.max(cells[newI][newJ], value);
                             cellElement.style.backgroundColor = "black";
@@ -74,10 +75,26 @@
             });
 
             async function predict() {
+                let finalCells = [];
+                for(let i = 0; i < 28; i++) {
+                    let row = [];
+                    for(let j = 0; j < 28; j++) {
+                        let sum = 0;
+                        for(let x = 0; x < 3; x++) {
+                            for(let y = 0; y < 3; y++) {
+                                sum += cells[i*3 + x][j*3 + y];
+                            }
+                        }
+                        row.push(Math.round(sum / 9));
+                    }
+                    finalCells.push(row);
+                }
+                console.log(finalCells);
+
                 let body = "";
                 for(let i = 0; i < 28; i++) {
                     for(let j = 0; j < 28; j++) {
-                        body += cells[i][j] + ",";
+                        body += finalCells[i][j] + ",";
                     }
                 }
                 let response = await fetch('/predict', {
