@@ -1,5 +1,7 @@
 # maturaproject
 
+You can run the web UI without training the model first, as the trained model is already included in the repository.
+
 ## how to train the mode :
 - If you already have the nvcc command available, you can directly run the dev.sh script.
 - If you don't have the nvcc command available, you can enter the nix shell with the command `nix-shell dev.nix` and then run the dev.sh script inside the shell.
