@@ -15,6 +15,7 @@ in
             cudatoolkit
             cudaPackages.cuda_cudart
             nvidiaPackage
+            texliveFull
         ];
 
         shellHook = ''
