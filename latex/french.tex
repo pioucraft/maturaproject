@@ -18,7 +18,7 @@
 
 \begin{abstract}
 
-Les réseaux de neurones à convolution (CNN) sont très utilisés de nos jours pour la reconaissance d'images. Nous allons en implémenter un en utilisant C et CUDA. Son but sera de lire un chiffre manuscrit et sera entrainé sur le dataset MNIST, en utilisant une carte graphique NVIDIA.
+Les réseaux de neurones à convolution (CNN) sont très utilisés de nos jours pour la reconaissance d'images. Nous allons en implémenter un en utilisant les languages C et CUDA. Son but sera de lire un chiffre manuscrit et sera entrainé sur le dataset MNIST, en utilisant une carte graphique NVIDIA.
 
 \end{abstract}
 
@@ -29,11 +29,23 @@ Les réseaux de neurones à convolution (CNN) sont très utilisés de nos jours 
 \newpage
 
 \section{Introduction}
-Pour la reconaissance de chiffres manuscrits, il y a plusieurs méthodes possibles. Une des méthodes les plus simples sont les perceptrons à plusieurs couches (MLP), mais les CNN sont plus efficaces pour les tâches de reconaissance d'images. Un CNN est un type de réseau de neurones qui a pour particularité d'utiliser des opérations de convolution pour extraire des caractéristiques de l'image. Ce TM aura pour but d'implémenter ce type de réseau de neurones en CUDA pour la partie entrainement et par la suite en C pour la partie inférence.
+Pour la reconaissance de chiffres manuscrits, il y a plusieurs méthodes possibles. Une des méthodes les plus simples est le perceptrons à plusieurs couches (MLP), mais les CNN sont plus efficaces pour les tâches de reconaissance d'images. Un CNN est un type de réseau de neurones qui a pour particularité d'utiliser des opérations de convolution pour extraire des caractéristiques de l'image. Ce TM aura pour but d'implémenter ce type de réseau de neurones en CUDA pour la partie entrainement et par la suite en C pour la partie inférence.
 
 \section{MLP}
 
 \subsection{Perceptron}
+
+Le perceptron est la brique de base de l'intelligence artificielle. Il accepte un nombre fixe d'entrées (inputs) ($N$) et nous donne un seul nombre en sortie (output). Le perceptron peut en lui même déjà être utilisé pour créer des systèmes de classification simples.
+
+Chaque entrée s'appelle $x_n$ (où $n$ est un chiffre entre $0$ et $N$ non inclu). Pour chaque entrée, il y a un poids (weight) associé ($w_n$). En plus des entrées et des poids, il y a un biais (bias) ($b$). Pour calculer la valeur de sortie, il faut également choisir une fonction d'activation ($f$). Il peut s'agir théoriquement de n'importe quelle fonction mathématique qui n'accepte qu'une seule entrée, mais dans le cadre de ce TM, nous allons utiliser deux fonctions pricipalement : ReLU et tanh
+
+\medskip
+
+Pour calculer la valeur de sortie de notre perceptron, il faudra faire une somme pondérée de nos entrées à laquelle nous allons additioner le biais avant de faire passer cette valeur dans la fonction d'activation :
+
+\[
+y = f\left(\sum_{n=1}^{N} w_n x_n + b\right)
+\]
 
 \begin{figure}[htbp]
 \centering
