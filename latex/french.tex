@@ -4,6 +4,10 @@
 \usepackage[T1]{fontenc}
 \usepackage{times}
 
+\usepackage{tikz}
+\usepackage{amsmath}
+\usetikzlibrary{arrows.meta, positioning}
+
 \title{Implémentation d'un CNN en C et CUDA pour la reconnaissance de chiffres manuscrits}
 \author{Nathan Gasser}
 \date{\today}
@@ -20,9 +24,59 @@ Les réseaux de neurones à convolution (CNN) sont très utilisés de nos jours 
 
 \newpage
 
+\tableofcontents
+
+\newpage
+
 \section{Introduction}
 Pour la reconaissance de chiffres manuscrits, il y a plusieurs méthodes possibles. Une des méthodes les plus simples sont les perceptrons à plusieurs couches (MLP), mais les CNN sont plus efficaces pour les tâches de reconaissance d'images. Un CNN est un type de réseau de neurones qui a pour particularité d'utiliser des opérations de convolution pour extraire des caractéristiques de l'image. Ce TM aura pour but d'implémenter ce type de réseau de neurones en CUDA pour la partie entrainement et par la suite en C pour la partie inférence.
 
-\section{
+\section{MLP}
+
+\subsection{Perceptron}
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}
+
+  \begin{scope}
+    \node[circle, draw, minimum size=1.2cm] (p) {$f$};
+    \coordinate[left=1.8cm of p] (left_of_p);
+    \node[above=0.5cm of left_of_p] (x1) {$x_1$};
+    \node[below=0.5cm of left_of_p] (x2) {$x_2$};
+    \node[below=1.6cm of p] (b) {$b$};
+
+    \draw[->] (x1) -- node[above] {$w_1$} (p);
+    \draw[->] (x2) -- node[below] {$w_2$} (p);
+    \draw[->] (b) -- (p);
+
+    \draw[->] (p) -- ++(2,0) node[right] {$y = f(w_1 \cdot x_1 + w_2 \cdot x_2 + b)$};
+
+    \node at (0, 1) {\textbf{Perceptron}};
+  \end{scope}
+
+\end{tikzpicture}
+\caption{Schéma d'un perceptron avec deux entrées ($x_1$ et $x_2$), deux poids ($w_1$ et $w_2$), un biais ($b$) et une fonction d'activation ($f$) qui produit la sortie ($y$).}
+\end{figure}
+
+\subsection{Backpropagation}
+
+\subsection{Plusieurs neurones}
+
+\section{CNN}
+
+\subsection{Convolution}
+
+\subsection{Pooling}
+
+\subsection{CNN complet}
+
+\section{Implémentation en C et CUDA}
+
+\subsection{Moteur d'inférence en C}
+
+\subsection{Moteur d'entrainement en CUDA}
+
+\subsection{Interface utilisateur}
 
 \end{document}
