@@ -4,6 +4,7 @@
 \usepackage[T1]{fontenc}
 \usepackage{times}
 
+\usepackage{float}
 \usepackage{tikz}
 \usepackage{amsmath}
 \usetikzlibrary{arrows.meta, positioning}
@@ -52,11 +53,13 @@ Nous voulons obtenir en sortie 10 probabilités pour chacun des 10 chiffres poss
 
 \section{MLP}
 
+L'architecture la plus simple qu'on peut utiliser est le perceptron à plusieurs couches (MLP), il est composé de plusieurs couches composées elles même de plusieurs perceptrons. Bien qu'elle soit ancienne, elle est toujours utilisée elle même à l'intérieur de beaucoup d'autres architectures comme le CNN.
+
 \subsection{Perceptron}
 
 Le perceptron est la brique de base de l'intelligence artificielle. Il accepte un nombre fixe d'entrées (inputs) ($N$) et nous donne un seul nombre en sortie (output). Le perceptron peut en lui même déjà être utilisé pour créer des systèmes de classification simples.
 
-Chaque entrée s'appelle $x_n$ (où $n$ est un chiffre entre $0$ et $N$ non inclu). Pour chaque entrée, il y a un poids (weight) associé ($w_n$). En plus des entrées et des poids, il y a un biais (bias) ($b$). Pour calculer la valeur de sortie, il faut également choisir une fonction d'activation ($f$). Il peut s'agir théoriquement de n'importe quelle fonction mathématique qui n'accepte qu'une seule entrée, mais dans le cadre de ce TM, nous allons utiliser deux fonctions pricipalement : ReLU et tanh
+Chaque entrée s'appelle $x_n$ (où $n$ est un chiffre entre $0$ et $N$ non inclu). Pour chaque entrée, il y a un poids (weight) associé ($w_n$). En plus des entrées et des poids, il y a un biais (bias) ($b$) asocié à chaque neurone. Les poids et les biais sont initialisés de manière aléatoire. Pour calculer la valeur de sortie, il faut également choisir une fonction d'activation ($f$). Il peut s'agir théoriquement de n'importe quelle fonction mathématique qui n'accepte qu'une seule entrée, mais dans le cadre de ce TM, nous allons utiliser deux fonctions pricipalement : ReLU et tanh
 
 \medskip
 
@@ -66,7 +69,7 @@ Pour calculer la valeur de sortie de notre perceptron, il faudra faire une somme
 y = f\left(\sum_{n=1}^{N} w_n x_n + b\right)
 \]
 
-\begin{figure}[htbp]
+\begin{figure}[H]
 \centering
 \begin{tikzpicture}
 
@@ -134,7 +137,7 @@ Pour former un MLP complet, il faut agencer plusieurs couches de plusieurs perce
 
 Nous pouvons schématiser un MLP ainsi :
 
-\begin{figure}[htbp]
+\begin{figure}[H]
 \centering
 \begin{tikzpicture}
 
@@ -182,7 +185,17 @@ Nous pouvons schématiser un MLP ainsi :
 \caption{Schéma d'un MLP avec 4 entrées et 2 sorties}
 \end{figure}
 
-\subsection{Backpropagation}
+\section{Backpropagation}
+
+Pour que notre modèle puisse correctement prédire les sorties correctes, il va falloir l'entainer. Sans entrainement, les prédictions seront tout simplement aléatoires. Pour entrainer notre modèle, nous allons utiliser la backpropagation qui est considéré comme l'algorithme le plus important dans le domaine du deep learning.
+
+\subsection{Erreur}
+
+En utilisant la backpropagation, notre but sera de minimiser la perte (loss) ($L$) du modèle. Si avec une certaine entrée, on obtient pour la sortie numéro $n$ une valeur de $y_n$, alors que nous voulions obtenir une valeur de $l_n$, nous pouvons calculer la perte en soustrayant la valeur que nous attendions à la valeur que nous avons obtenu et élever le tout au carré. Cet algorithme s'appelle l'erreur quadratique (Mean Squared Error ou MSE en anglais).
+
+\[
+L = (y_n - l_n) ^ 2
+\]
 
 \section{CNN}
 
