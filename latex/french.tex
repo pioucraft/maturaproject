@@ -11,7 +11,11 @@
 
 \usepackage{hyperref}
 
-\title{Implémentation d'un CNN en C et CUDA pour la reconnaissance de chiffres manuscrits}
+\title{
+Implémentation d'un CNN en C et CUDA pour la reconnaissance de chiffres manuscrits \\ 
+\large{Travail de maturité}
+}
+
 \author{Nathan Gasser}
 \date{\today}
 
@@ -40,7 +44,11 @@ Pour faire un modèle qui est capable de lire un chiffre manuscrit, il faut d'ab
 
 \medskip
 
-Chaque chiffre manuscrit sera sous forme d'une image de $28 \times 28$ pixels avec à chaque fois $256$ différentes intensités de noir. C'est à dire que si la valeur du pixel est de $0$, il correspond a un pixel blanc et si la valeur du pixel est de $255$, il correspond à un pixel noir. Les valeurs entre deux correspondent à différentes intensités de gris. Notez que la valeur maximale d'un pixel correspond à $255$ et non $255$, tout simplement parce qu'il y a $256$ valeurs différentes et que la valeur $0$ est incluse, ce qui nous laisse $255$ valeurs positives. Nous allons ensuite les diviser tous par $255$, ce qui nous permet d'avoir des valeurs entre $0$ et $1.0$ que nous allons pouvoir donner au modèle. Nous avons donc $28 \times 28 = 784$ pixels dans une image. Notre modèle aura donc $784$ entrées avec des valeurs comprises entre $0$ et $1.0$ à chaque fois.
+Chaque chiffre manuscrit est une image de $28 \times 28$ pixels avec à chaque fois $256$ différentes intensités de noir. C'est à dire que si la valeur du pixel est de $0$, il correspond a un pixel blanc et si la valeur du pixel est de $255$, il correspond à un pixel noir. Les valeurs entre deux correspondent à différentes intensités de gris. Notez que la valeur maximale d'un pixel correspond à $255$ et non $255$, tout simplement parce qu'il y a $256$ valeurs différentes et que la valeur $0$ est incluse, ce qui nous laisse $255$ valeurs positives. Nous allons ensuite les diviser tous par $255$, ce qui nous permet d'avoir des valeurs entre $0$ et $1.0$ que nous allons pouvoir donner au modèle. Nous avons donc $28 \times 28 = 784$ pixels dans une image. Notre modèle aura donc $784$ entrées avec des valeurs comprises entre $0$ et $1.0$ à chaque fois.
+
+\medskip
+
+Nous voulons obtenir en sortie 10 probabilités pour chacun des 10 chiffres possibles (de $0$ à $9$). Il y aura donc 10 neurones en sortie, chacuns des différents chiffres sera assigné à un neurone et les valeurs de sortie des neurones se situeront entre $-1.0$ et $1.0$. Une valeur de $-1.0$ correspond à une certitude qu'il ne s'agit pas du chiffre associé à l'image et $1.0$ correspond à une certitude qu'il s'agit du bon chiffre.
 
 \section{MLP}
 
@@ -120,7 +128,59 @@ La fonction $tanh$ (tangeante hyperbolique) est utilisée pour confiner les vale
 \end{tikzpicture}
 
 \subsection{Plusieurs neurones}
-Pour former un MLP complet, il faut agencer plusieurs couches de plusieurs perceptrons ensemble. La valeur de l'entrée numéro $i$ dans le neurone numéro $n$ dans la couche numéro $c$ correspondra à la valeur de sortie du neurone $n - 1$ sur la couche $c - 1$. Si nous sommes sur la couche initiale du réseau, les entrées des différents neuronnes correspondent aux entrées du modèle (dans notre cas, les différents pixels d'une image). L'entrée numéro $i$ de n'importe quel neuronne de la couche initiale correspondra au pixel numéro $i$ de l'image qu'on donne en entrée au modèle. 
+Pour former un MLP complet, il faut agencer plusieurs couches de plusieurs perceptrons ensemble. A part pour la couche initiale du modèle, la valeur de l'entrée numéro $i$ dans le neurone numéro $n$ dans la couche numéro $c$ correspondra à la valeur de sortie du neurone $n - 1$ sur la couche $c - 1$. Si nous sommes sur la couche initiale du réseau, les entrées des différents neuronnes correspondent aux entrées du modèle (dans notre cas, les différents pixels d'une image). Pour les couches initiales et finales, il s'agit des couches d'entrées et de sorties respectivement.
+
+\medskip
+
+Nous pouvons schématiser un MLP ainsi :
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}
+
+\begin{scope}
+
+\coordinate[] (center);
+
+% Input
+\coordinate[left=2cm of center] (input);
+\node[circle, draw, minimum size=0.5cm, below=0.75cm of input] (n_0_0) {};
+\foreach \n in {1,...,3}{
+    \node[circle, draw, minimum size=0.5cm, below=0.5cm of n_0_\fpeval{\n - 1}] (n_0_\n) {};
+}
+
+% Hidden
+\node[circle, draw, minimum size=0.5cm] (n_1_0) {};
+\foreach \n in {1,...,5}{
+    \node[circle, draw, minimum size=0.5cm, below=0.5cm of n_1_\fpeval{\n - 1}] (n_1_\n) {};
+}
+
+% Output
+\coordinate[right=2cm of center] (output);
+\node[circle, draw, minimum size=0.5cm, below=1.75cm of output] (n_2_0) {};
+\foreach \n in {1,...,1}{
+    \node[circle, draw, minimum size=0.5cm, below=0.5cm of n_2_\fpeval{\n - 1}] (n_2_\n) {};
+}
+
+% Input to Hidden connections
+\foreach \i in {0,...,3}{
+    \foreach \j in {0,...,5}{
+        \draw[->] (n_0_\i) -- (n_1_\j);
+    }
+}
+
+% Hidden to Output connections
+\foreach \i in {0,...,5}{
+    \foreach \j in {0,...,1}{
+        \draw[->] (n_1_\i) -- (n_2_\j);
+    }
+}
+
+\end{scope}
+
+\end{tikzpicture}
+\caption{Schéma d'un MLP avec 4 entrées et 2 sorties}
+\end{figure}
 
 \subsection{Backpropagation}
 
