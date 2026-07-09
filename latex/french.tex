@@ -8,6 +8,8 @@
 \usepackage{amsmath}
 \usetikzlibrary{arrows.meta, positioning}
 
+\usepackage{hyperref}
+
 \title{Implémentation d'un CNN en C et CUDA pour la reconnaissance de chiffres manuscrits}
 \author{Nathan Gasser}
 \date{\today}
@@ -70,6 +72,27 @@ y = f\left(\sum_{n=1}^{N} w_n x_n + b\right)
 \end{tikzpicture}
 \caption{Schéma d'un perceptron avec deux entrées ($x_1$ et $x_2$), deux poids ($w_1$ et $w_2$), un biais ($b$) et une fonction d'activation ($f$) qui produit la sortie ($y$).}
 \end{figure}
+
+\subsection{Fonctions d'activation}
+
+% Please improve this part...
+En ajoutant une fonction d'activation au perceptron, on lui permet d'apprendre des motifs beaucoup libres et qui ne se limiterons pas à des valeurs de sortie linéaires.
+
+\subsubsection{La fonction ReLU}
+La fonction ReLU est représentée comme ceci : 
+
+\[
+
+ReLU(x) =
+
+\begin{cases}
+
+si x > 0 : x \\
+sinon : 0
+
+\end{cases}
+
+\]
 
 \subsection{Backpropagation}
 
