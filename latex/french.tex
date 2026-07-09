@@ -7,6 +7,7 @@
 \usepackage{tikz}
 \usepackage{amsmath}
 \usetikzlibrary{arrows.meta, positioning}
+\usepackage{pgfplots}
 
 \usepackage{hyperref}
 
@@ -75,24 +76,40 @@ y = f\left(\sum_{n=1}^{N} w_n x_n + b\right)
 
 \subsection{Fonctions d'activation}
 
-% Please improve this part...
-En ajoutant une fonction d'activation au perceptron, on lui permet d'apprendre des motifs beaucoup libres et qui ne se limiterons pas à des valeurs de sortie linéaires.
+La fonction d'activation permet d'ajouter de la non linéarité au modèle. Cela permet au modèle d'apprendre des motifs bien plus complexes. Sans fonction d'activation, le modèle ne pourrait apprendre que des motifs linéaires, ce qui est beaucoup trop limité pour des tâches de rconnaissance d'images.
 
-\subsubsection{La fonction ReLU}
-La fonction ReLU est représentée comme ceci : 
+\subsubsection{La fonction $ReLU$}
+La fonction $ReLU$ est la suivante :
 
 \[
-
-ReLU(x) =
-
+ReLU(x) = 
 \begin{cases}
-
-si x > 0 : x \\
-sinon : 0
-
+0 \ \text{si} \ x < 0 \\
+x \ \text{si} \ x \geq 0
 \end{cases}
-
 \]
+
+\subsubsection{La fonction $tanh$}
+La fonction $tanh$ (tangeante hyperbolique) est utilisée pour confiner les valeurs de sorties entre la valeur $-1.0$ et $1.0$. Dans le contexte de la reconnaissance d'images, elle permet de représenter le niveau de certitude de notre modèle par rapport à différentes prédictions. Les fonctions softmax ou sigmoid sont également souvent utilisées mais par simplicité, j'ai décidé d'utiliser la fonction tanh. 
+
+\begin{tikzpicture}
+    \begin{axis}[
+        title={Graphe de $tanh(x)$},
+        xlabel={$x$},
+        ylabel={$y$},
+        xmin=-3, xmax=3,
+        ymin=-1.5, ymax=1.5,
+        domain=-3:3,
+        samples=100,
+        grid=both,
+        axis lines=middle,
+        thick
+    ]
+        \addplot[color=blue, ultra thick] {tanh(x)};
+        \addplot[color=red, dashed, domain=-3:3] {1};
+        \addplot[color=red, dashed, domain=-3:3] {-1};
+    \end{axis}
+\end{tikzpicture}
 
 \subsection{Backpropagation}
 
