@@ -34,6 +34,14 @@ Les réseaux de neurones à convolution (CNN) sont très utilisés de nos jours 
 \section{Introduction}
 Pour la reconaissance de chiffres manuscrits, il y a plusieurs méthodes possibles. Une des méthodes les plus simples est le perceptrons à plusieurs couches (MLP), mais les CNN sont plus efficaces pour les tâches de reconaissance d'images. Un CNN est un type de réseau de neurones qui a pour particularité d'utiliser des opérations de convolution pour extraire des caractéristiques de l'image. Ce TM aura pour but d'implémenter ce type de réseau de neurones en CUDA pour la partie entrainement et par la suite en C pour la partie inférence.
 
+\section{Modèle de reconaissance d'images}
+
+Pour faire un modèle qui est capable de lire un chiffre manuscrit, il faut d'abord comprendre sous quelle forme donner l'image du chiffre manuscrit et également sous quelle forme se présentera la sortie du modèle.
+
+\medskip
+
+Chaque chiffre manuscrit sera sous forme d'une image de $28 \times 28$ pixels avec à chaque fois $256$ différentes intensités de noir. C'est à dire que si la valeur du pixel est de $0$, il correspond a un pixel blanc et si la valeur du pixel est de $255$, il correspond à un pixel noir. Les valeurs entre deux correspondent à différentes intensités de gris. Notez que la valeur maximale d'un pixel correspond à $255$ et non $255$, tout simplement parce qu'il y a $256$ valeurs différentes et que la valeur $0$ est incluse, ce qui nous laisse $255$ valeurs positives. Nous allons ensuite les diviser tous par $255$, ce qui nous permet d'avoir des valeurs entre $0$ et $1.0$ que nous allons pouvoir donner au modèle. Nous avons donc $28 \times 28 = 784$ pixels dans une image. Notre modèle aura donc $784$ entrées avec des valeurs comprises entre $0$ et $1.0$ à chaque fois.
+
 \section{MLP}
 
 \subsection{Perceptron}
@@ -111,9 +119,10 @@ La fonction $tanh$ (tangeante hyperbolique) est utilisée pour confiner les vale
     \end{axis}
 \end{tikzpicture}
 
-\subsection{Backpropagation}
-
 \subsection{Plusieurs neurones}
+Pour former un MLP complet, il faut agencer plusieurs couches de plusieurs perceptrons ensemble. La valeur de l'entrée numéro $i$ dans le neurone numéro $n$ dans la couche numéro $c$ correspondra à la valeur de sortie du neurone $n - 1$ sur la couche $c - 1$. Si nous sommes sur la couche initiale du réseau, les entrées des différents neuronnes correspondent aux entrées du modèle (dans notre cas, les différents pixels d'une image). L'entrée numéro $i$ de n'importe quel neuronne de la couche initiale correspondra au pixel numéro $i$ de l'image qu'on donne en entrée au modèle. 
+
+\subsection{Backpropagation}
 
 \section{CNN}
 
