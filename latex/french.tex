@@ -59,14 +59,14 @@ L'architecture la plus simple qu'on peut utiliser est le perceptron à plusieurs
 
 Le perceptron est la brique de base de l'intelligence artificielle. Il accepte un nombre fixe d'entrées (inputs) ($N$) et nous donne un seul nombre en sortie (output). Le perceptron peut en lui même déjà être utilisé pour créer des systèmes de classification simples.
 
-Chaque entrée s'appelle $x_n$ (où $n$ est un chiffre entre $0$ et $N$ non inclu). Pour chaque entrée, il y a un poids (weight) associé ($w_n$). En plus des entrées et des poids, il y a un biais (bias) ($b$) asocié à chaque neurone. Les poids et les biais sont initialisés de manière aléatoire. Pour calculer la valeur de sortie, il faut également choisir une fonction d'activation ($f$). Il peut s'agir théoriquement de n'importe quelle fonction mathématique qui n'accepte qu'une seule entrée, mais dans le cadre de ce TM, nous allons utiliser deux fonctions pricipalement : ReLU et tanh
+Chaque entrée s'appelle $x_n$ et est représentée sous forme d'un nombre naturel. Pour chaque entrée, il y a un poids (weight) associé ($w_n$). En plus des entrées et des poids, il y a un biais (bias) ($b$) asocié à chaque neurone. Par convention, ces poids et biais seront appelés paramètres. Ces paramètres sont initialisés de manière aléatoire. Pour calculer la valeur de sortie, il faut également choisir une fonction d'activation ($f$). Il peut s'agir théoriquement d'à peu près n'importe quelle fonction mathématique, mais dans le cadre de ce TM, nous allons utiliser deux fonctions pricipalement : ReLU et tanh
 
 \medskip
 
-Pour calculer la valeur de sortie de notre perceptron, il faudra faire une somme pondérée de nos entrées à laquelle nous allons additioner le biais avant de faire passer cette valeur dans la fonction d'activation :
+Pour calculer la valeur de sortie de notre perceptron, il faudra d'abord calculer la valeur Z ($z$) en faisant une somme pondérée des entrées et du biais. Ensuite, nous pourrons appliquer la fonction d'activation à la valeur Z. La formule est la suivante :
 
 \[
-y = f\left(\sum_{n=1}^{N} w_n x_n + b\right)
+y = f(z) = f\left(\sum_{n=1}^{N} w_n x_n + b\right)
 \]
 
 \begin{figure}[H]
@@ -109,7 +109,7 @@ x \ \text{si} \ x \geq 0
 \]
 
 \subsubsection{La fonction $tanh$}
-La fonction $tanh$ (tangeante hyperbolique) est utilisée pour confiner les valeurs de sorties entre la valeur $-1.0$ et $1.0$. Dans le contexte de la reconnaissance d'images, elle permet de représenter le niveau de certitude de notre modèle par rapport à différentes prédictions. Les fonctions softmax ou sigmoid sont également souvent utilisées mais par simplicité, j'ai décidé d'utiliser la fonction tanh. 
+La fonction $tanh$ (tangente hyperbolique) est utilisée pour confiner les valeurs de sorties entre la valeur $-1.0$ et $1.0$. Dans le contexte de la reconnaissance d'images, elle permet de représenter le niveau de certitude de notre modèle par rapport à différentes prédictions. La fonction softmax est également souvent utilisée mais par simplicité j'ai décidé d'utiliser tanh pour ce TM.
 
 \begin{tikzpicture}
     \begin{axis}[
@@ -187,14 +187,33 @@ Nous pouvons schématiser un MLP ainsi :
 
 \section{Backpropagation}
 
-Pour que notre modèle puisse correctement prédire les sorties correctes, il va falloir l'entainer. Sans entrainement, les prédictions seront tout simplement aléatoires. Pour entrainer notre modèle, nous allons utiliser la backpropagation qui est considéré comme l'algorithme le plus important dans le domaine du deep learning.
+Pour que notre modèle puisse correctement prédire les sorties correctes, il va falloir l'entainer. Sans entrainement, les prédictions seront tout simplement aléatoires. Pour entrainer notre modèle, nous allons utiliser la backpropagation qui est considérée comme l'algorithme le plus important dans le domaine du deep learning. Le but sera de faire la dérivée de la perte par rapport aux différents paramètres du modèle pour savoir comment modifier ces derniers tel que la perte diminue et que le modèle fasse donc de meilleures prédictions.
 
 \subsection{Erreur}
 
-En utilisant la backpropagation, notre but sera de minimiser la perte (loss) ($L$) du modèle. Si avec une certaine entrée, on obtient pour la sortie numéro $n$ une valeur de $y_n$, alors que nous voulions obtenir une valeur de $l_n$, nous pouvons calculer la perte en soustrayant la valeur que nous attendions à la valeur que nous avons obtenu et élever le tout au carré. Cet algorithme s'appelle l'erreur quadratique (Mean Squared Error ou MSE en anglais).
+Avec la backpropagation, notre but sera de minimiser la perte (loss) ($L$) du modèle. Si avec une certaine entrée, on obtient pour la sortie numéro $n$ une valeur de $y_n$, alors que nous voulions obtenir une valeur de $l_n$, nous pouvons calculer la perte en soustrayant la valeur que nous attendions à la valeur que nous avons obtenu et élever le tout au carré. Cet algorithme s'appelle l'erreur quadratique (Mean Squared Error ou MSE en anglais). Nous pouvons ensuite additionner les pertes de toutes les sorties pour obtenir la perte totale du modèle.
 
 \[
 L = (y_n - l_n) ^ 2
+\]
+
+\medskip
+
+La perte en elle même n'est intéressante que pour suivre l'évolution de la qualité du modèle. Comme expliqué plus haut, ce qui va vraiment nous intéresser, c'est la dérivée de la perte par rapport aux différents paramètres du modèle. C'est ici qu'entre en jeu la backpropagation. Pour calculer la dérivée de la perte par rapport aux différents poids et biais, nous allons utiliser la règle de la chaine (chain rule). Pour commencer la chaine, nous allons devoir calculer la dérivée des pertes par rapport aux différentes sorties associées du modèle. Pour une sortie $y_n$ associée à une valeur attendue $l_n$, la dérivée de la perte totale $L$ par rapport à cette sortie est la suivante :
+
+\[
+\frac{\partial L}{\partial y_n} = 2 \cdot (y_n - l_n)
+\]
+
+\subsection{Backpropagation}
+
+Ensuite, nous allons pouvoir utiliser la règle de la chaine pour faire la backpropagation et calculer la dérivée de la perte par rapport aux différents paramètres du modèle. Pour commencer, il va falloir calculer la dérivée de la perte par rapport à la valeur Z
+
+
+Pour un poids $w_{wn}$ associé à une entrée $i_{in}$, la dérivée de la perte par rapport à ce poids est la suivante :
+
+\[
+\frac{\partial L}{\partial w_{wn}} = \frac{\partial L}{\partial y_n} \cdot \frac{\partial y_n}{\partial w_{wn}} = \frac{\partial L}{\partial y_n} \cdot i_{in}
 \]
 
 \section{CNN}
