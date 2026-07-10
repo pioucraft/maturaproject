@@ -207,14 +207,46 @@ La perte en elle même n'est intéressante que pour suivre l'évolution de la qu
 
 \subsection{Backpropagation}
 
-Ensuite, nous allons pouvoir utiliser la règle de la chaine pour faire la backpropagation et calculer la dérivée de la perte par rapport aux différents paramètres du modèle. Pour commencer, il va falloir calculer la dérivée de la perte par rapport à la valeur Z
-
-
-Pour un poids $w_{wn}$ associé à une entrée $i_{in}$, la dérivée de la perte par rapport à ce poids est la suivante :
+Ensuite, nous allons pouvoir utiliser la règle de la chaine pour faire la backpropagation et calculer la dérivée de la perte par rapport aux différents paramètres du modèle. Pour commencer, il va falloir calculer la dérivée de la perte par rapport aux valeurs Z. Pour un neurone $n$ dont la valeur de sortie équivaut à $y_n$, la dérivée de la perte par rapport à la valeur Z est la suivante si la fonction d'activation est $tanh$ :
 
 \[
-\frac{\partial L}{\partial w_{wn}} = \frac{\partial L}{\partial y_n} \cdot \frac{\partial y_n}{\partial w_{wn}} = \frac{\partial L}{\partial y_n} \cdot i_{in}
+\frac{\partial L}{\partial z_n} = \frac{\partial L}{\partial y_n} \cdot \frac{\partial y_n}{\partial z_n} = \frac{\partial L}{\partial y_n} \cdot (1 - y_n^2)
 \]
+
+et si la fonction d'activation est $ReLU$ :
+
+\[
+\frac{\partial L}{\partial z_n} = \frac{\partial L}{\partial y_n} \cdot \frac{\partial y_n}{\partial z_n} =
+\begin{cases}
+0 \ \text{si} \ z_n < 0 \\
+\frac{\partial L}{\partial y_n} \ \text{si} \ z_n \geq 0
+\end{cases}
+\]
+
+
+\medskip
+
+Ensuite, nous allons faire la dérivée à travers la valeur Z pour avoir la dérivée de la perte par rapport aux poids et aux biais. Pour un poids $w_{wn}$ associé à une entrée $i_{in}$, la dérivée de la perte par rapport à ce poids est la suivante :
+
+\[
+\frac{\partial L}{\partial w_{wn}} = \frac{\partial L}{\partial z_n} \cdot \frac{\partial z_n}{\partial w_{wn}} = \frac{\partial L}{\partial z_n} \cdot i_{in}
+\]
+
+Et pour un biais $b_n$ associé à un neurone $n$, la dérivée de la perte par rapport à ce biais est la suivante :
+
+\[
+\frac{\partial L}{\partial b_n} = \frac{\partial L}{\partial z_n} \cdot \frac{\partial z_n}{\partial b_n} = \frac{\partial L}{\partial z_n}
+\]
+
+\medskip
+
+Notez également la présence des valeurs y qui correspondent aux sorties des neurones. Pour un neurone dans la couche finale du modèle, nous avons déjà montré comment cette dérivée ce calcule. Pour un neurone dans une autre couche, il va falloir faire la somme pondérée des dérivées des neurones de la couche suivante. Pour un neurone $n$ de la couche $c$ et $M$ neurones dans la couche $c+1$, la dérivée de la perte par rapport à la valeur de sortie de ce neurone est la suivante :
+
+\[
+\frac{\partial L}{\partial y_{c,n}} = \sum_{m=1}^{M} \frac{\partial L}{\partial z_{c+1,m}} \cdot w_{c+1,m,n}
+\]
+
+Les dérivées des neurones des couches précédants la couche de sortie nécéssitant de connaitre les dérivées des neurones de la couche qui suivent ces neurones, il est donc nécéssaire de faire la backpropagation en calculant d'abord les dérivées des neurones de la couche de sortie, puis celles de la couche précédente et ainsi de suite jusqu'à la couche initiale.
 
 \section{CNN}
 
