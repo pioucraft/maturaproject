@@ -290,13 +290,23 @@ Et la dérivée de la perte par rapport à une entrée $x_{ci,i,j}$ de la maniè
 
 \subsection{Pooling}
 
-Il existe également des couches de pooling qui permettent de réduire la taille des entrées sans perdre trop d'informations. Il existe plusieurs manières de faire du pooling, mais dans le cadre de ce TM, nous allons utiliser le max pooling. Le max pooling nécesssite de déterminer à l'avance une pool size ($ps$) et prendra comme entrée une matrice de dimensions $si \times si$ pour produire une matrice de dimensions $(si / ps) \times (si / ps)$. Les couches de pooling n'ont pas de paramètres à entrainer. Pour calculer la valeur d'une cellule de sortie $y_{i,j}$ avec une matrice d'entrée $x$, voici la formule à utiliser :
+Il existe également des couches de pooling qui permettent de réduire la taille des entrées sans perdre trop d'informations. Il existe plusieurs manières de faire du pooling, mais dans le cadre de ce TM, nous allons utiliser le max pooling. Le max pooling nécesssite de déterminer à l'avance une pool size ($ps$) et prendra comme entrée une matrice de dimensions $si \times si$ pour produire une matrice de dimensions $(si / ps) \times (si / ps)$. Les couches de pooling n'ont pas de paramètres à entrainer. La valeur d'une cellule de sortie $y_{i,j}$ est la valeur maximale dans la sous-matrice de dimensions $ps \times ps$ de l'entrée $x$ commençant à la position $i \cdot ps, j \cdot ps$ et finissant à la position $(i + 1) \cdot ps - 1, (j + 1) \cdot ps - 1$.
 
-\[
-% max... idk how to write this in latex
-\]
+\medskip
+
+Pour la dérivée de la perte par rapport à une cellule d'entrée $x_{i,j}$, c'est très simple. Si la cellule d'entrée $x_{i,j}$ est la même que la valeur associée dans la cellule de sortie $y_{i/ps,j/ps}$, alors la dérivée de la perte par rapport à cette cellule d'entrée est la même que la dérivée de la perte par rapport à cette cellule de sortie. Sinon, la dérivée de la perte par rapport à cette cellule d'entrée est égale à 0.
+
+\medskip
+
+Dans le cadre d'un CNN, il y a souvent plusieurs canaux. Pour gérer plusieurs canaux, c'est très simple, il suffit de faire l'opération de pooling sur chaque canal indépendamment. Ainsi, si nous avons $nc$ canaux d'entrée, nous aurons également $nc$ canaux de sortie.
 
 \subsection{CNN complet}
+
+Pour créer un CNN complet, nous avons souvent une architecture qui commence par plusieurs suite de couches de convolution et de pooling, suivies par plusieurs couches de MLP. 
+
+\section{Dropout}
+
+\section{Architecture du modèle final}
 
 \section{Implémentation en C et CUDA}
 
