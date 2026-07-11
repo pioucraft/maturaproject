@@ -248,6 +248,14 @@ Notez également la présence des valeurs y qui correspondent aux sorties des ne
 
 Les dérivées des neurones des couches précédants la couche de sortie nécéssitant de connaitre les dérivées des neurones de la couche qui suivent ces neurones, il est donc nécéssaire de faire la backpropagation en calculant d'abord les dérivées des neurones de la couche de sortie, puis celles de la couche précédente et ainsi de suite jusqu'à la couche initiale.
 
+\subsubsection{SGD}
+
+Maintenant que nous avons les dérivées de la perte par rapport aux différents paramètres du modèle, nous allons devoir mettre à jour ces paramètres tel que la perte diminue. Pour ce faire, nous allons utiliser l'algorithme de descente de gradient stochastique (Stochastic Gradient Descent ou SGD en anglais). Cet algorithme est très simple à comprendre. Si nous conaissons la dérivée de la perte par rapport à un paramètre $p_{ni}$, nous savons que si nous changeons la valeur de ce paramètre dans le sens opposé à la dérivée, la perte va diminuer. Etant donné que nous ne voulions pas change la valeur de ce paramètre trop rapidement, car nous pourions ainsi dépasser le minimum de la fonction de perte, nous allons multiplier la dérivée par un scalaire appelé le taux d'apprentissage (learning rate) ($\alpha$), dans le cadre de ce TM, sa valeur est de 0.05. La formule pour déterminer le nouveau paramètre ($p_{nf}$) est la suivante :
+
+\[
+p_{nf} = p_{ni} - \alpha \cdot \frac{\partial L}{\partial p_{ni}}
+\]
+
 \section{CNN}
 
 \subsection{Convolution}
