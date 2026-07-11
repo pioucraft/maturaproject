@@ -39,6 +39,8 @@ Les réseaux de neurones à convolution (CNN) sont très utilisés de nos jours 
 \section{Introduction}
 Pour la reconaissance de chiffres manuscrits, il y a plusieurs méthodes possibles. Une des méthodes les plus simples est le perceptrons à plusieurs couches (MLP), mais les CNN sont plus efficaces pour les tâches de reconaissance d'images. Un CNN est un type de réseau de neurones qui a pour particularité d'utiliser des opérations de convolution pour extraire des caractéristiques de l'image. Ce TM aura pour but d'implémenter ce type de réseau de neurones en CUDA pour la partie entrainement et par la suite en C pour la partie inférence.
 
+% TODO : Do something to make it clear that we're using zero indexing and not one indexing... and idk really make it clearer generally... it's crazy how this thing is actually so unclear and b*****it (not gonna actually say it cuz it's a school project and this thing lives in the git history...) and bad and stuff...
+
 \section{Modèle de reconaissance d'images}
 
 Pour faire un modèle qui est capable de lire un chiffre manuscrit, il faut d'abord comprendre sous quelle forme donner l'image du chiffre manuscrit et également sous quelle forme se présentera la sortie du modèle.
@@ -66,7 +68,7 @@ Chaque entrée s'appelle $x_n$ et est représentée sous forme d'un nombre natur
 Pour calculer la valeur de sortie de notre perceptron, il faudra d'abord calculer la valeur Z ($z$) en faisant une somme pondérée des entrées et du biais. Ensuite, nous pourrons appliquer la fonction d'activation à la valeur Z. La formule est la suivante :
 
 \[
-y = f(z) = f\left(\sum_{n=1}^{N} w_n x_n + b\right)
+y = f(z) = f\left(\sum_{n=0}^{N-1} w_n x_n + b\right)
 \]
 
 \begin{figure}[H]
@@ -243,14 +245,14 @@ Et pour un biais $b_n$ associé à un neurone $n$, la dérivée de la perte par 
 Notez également la présence des valeurs y qui correspondent aux sorties des neurones. Pour un neurone dans la couche finale du modèle, nous avons déjà montré comment cette dérivée ce calcule. Pour un neurone dans une autre couche, il va falloir faire la somme pondérée des dérivées des neurones de la couche suivante. Pour un neurone $n$ de la couche $c$ et $M$ neurones dans la couche $c+1$, la dérivée de la perte par rapport à la valeur de sortie de ce neurone est la suivante :
 
 \[
-\frac{\partial L}{\partial y_{c,n}} = \sum_{m=1}^{M} \frac{\partial L}{\partial z_{c+1,m}} \cdot w_{c+1,m,n}
+\frac{\partial L}{\partial y_{c,n}} = \sum_{m=0}^{M-1} \frac{\partial L}{\partial z_{c+1,m}} \cdot w_{c+1,m,n}
 \]
 
 Les dérivées des neurones des couches précédants la couche de sortie nécéssitant de connaitre les dérivées des neurones de la couche qui suivent ces neurones, il est donc nécéssaire de faire la backpropagation en calculant d'abord les dérivées des neurones de la couche de sortie, puis celles de la couche précédente et ainsi de suite jusqu'à la couche initiale.
 
 \subsubsection{SGD}
 
-Maintenant que nous avons les dérivées de la perte par rapport aux différents paramètres du modèle, nous allons devoir mettre à jour ces paramètres tel que la perte diminue. Pour ce faire, nous allons utiliser l'algorithme de descente de gradient stochastique (Stochastic Gradient Descent ou SGD en anglais). Cet algorithme est très simple à comprendre. Si nous conaissons la dérivée de la perte par rapport à un paramètre $p_{ni}$, nous savons que si nous changeons la valeur de ce paramètre dans le sens opposé à la dérivée, la perte va diminuer. Etant donné que nous ne voulions pas change la valeur de ce paramètre trop rapidement, car nous pourions ainsi dépasser le minimum de la fonction de perte, nous allons multiplier la dérivée par un scalaire appelé le taux d'apprentissage (learning rate) ($\alpha$), dans le cadre de ce TM, sa valeur est de 0.05. La formule pour déterminer le nouveau paramètre ($p_{nf}$) est la suivante :
+Maintenant que nous avons les dérivées de la perte par rapport aux différents paramètres du modèle, nous allons devoir mettre à jour ces paramètres tel que la perte diminue. Pour ce faire, nous allons utiliser l'algorithme de descente de gradient stochastique (Stochastic Gradient Descent ou SGD en anglais). Cet algorithme est très simple à comprendre. Si nous conaissons la dérivée de la perte par rapport à un paramètre $pi_{n}$, nous savons que si nous changeons la valeur de ce paramètre dans le sens opposé à la dérivée, la perte va diminuer. Etant donné que nous ne voulions pas change la valeur de ce paramètre trop rapidement, car nous pourions ainsi dépasser le minimum de la fonction de perte, nous allons multiplier la dérivée par un scalaire appelé le taux d'apprentissage (learning rate) ($\alpha$), dans le cadre de ce TM, sa valeur est de 0.05. La formule pour déterminer le nouveau paramètre ($pf_{n}$) est la suivante :
 
 \[
 p_{nf} = p_{ni} - \alpha \cdot \frac{\partial L}{\partial p_{ni}}
@@ -258,9 +260,41 @@ p_{nf} = p_{ni} - \alpha \cdot \frac{\partial L}{\partial p_{ni}}
 
 \section{CNN}
 
+En utilisant l'architecture MLP, nous avons pu créer un modèle capable de reconnaitre des chiffres manuscrits. Cependant, il est possible de créer un modèle plus efficace en utilisant l'architecture CNN.
+
 \subsection{Convolution}
 
+La particularité principale d'un CNN est l'utilisation des couches de convolution. Une opération de convolution va appliquer un filtre (kernel ou filter en anglais) sur notre entrée. Le filtre et l'entrée sont tous deux représentées sous forme de matrices. Cela permet au modèle de comprendre les motifs en 2d dans l'image. Le filtre est une matrice bien plus petite que l'image d'entrée, de dimensions $sf \times sf$, notez que les poids du filtre font partie des paramètres du modèle à optimiser avec la backpropagation. La matrice d'entrée est de dimension $si \times si$. Dans le cadre du TM, la sortie sera représentée sous forme d'une matrice de dimensions $(si - sf + 1) \times (si - sf + 1)$. Pour calculer la valeur d'une cellule de sortie $y_{i,j}$ avec une matrice d'entrée $x$ et un filtre $f$, voici la formule à utiliser :
+
+\[
+y_{i,j} = \sum_{ii=0}^{sf-1} \sum_{ji=0}^{sf-1} x_{i+ii,j+ji} \cdot f_{ii,ji}
+\]
+
+Dans une couche de convolution, il y a plusieurs filtres qui peuvent être utilisés. Chaque filtre va produire une sortie différente, chaque sortie s'appellant un canal (channel). Si nous avons plusieurs canaux de sortie, vous noterez qu'il faudra également accepter plusieurs canaux d'entrée. Si nous avons $nc$ canaux d'entrée avec $nf$ filtres (donc également $nf$ canaux de sortie, nous devons utiliser un nombre $nf$ de filtres et une entrée représentés par des tenseurs d'ordre 3. Ainsi, nous avons $nf$ filtres de dimensions $nc \times sf \times sf$ et une entrée de dimensions $nc \times si \times si$. La sortie sera donc représentée par un tenseur de dimensions $nf \times (si - sf + 1) \times (si - sf + 1)$. Nous pouvons également représenter tous les filtres sous forme d'un tenseur d'ordre 4 de dimensions $nf \times nc \times sf \times sf$. Pour calculer la valeur d'une cellule de sortie $y_{ci,i,j}$ avec notre tenseur d'ordre 4 de filtres $f$ et notre tenseur d'ordre 3 pour nos entrées $x$, voici la formule à utiliser : 
+
+\[
+y_{ci,i,j} = \sum_{ici=0}^{ci-1} \sum_{ii=0}^{sf-1} \sum_{ji=0}^{sf-1} x_{ici,i+ii,j+ji} \cdot f_{ci,ici,i,j}
+\]
+
+Nous pouvons écrire la dérivée de la perte par rapport au poids d'un filtre $f_{ci,ici,fi,fj}$ de la manière suivante, avec $so$ la taille de la sortie :
+
+\[
+\frac{\partial L}{\partial f_{ci,ici,fi,fj}} = \sum_{i=0}^{so-1} \sum_{j=0}^{so-1} \frac{\partial L}{\partial y_{ci,i,j}} \cdot x_{ici,i+fi,j+fj}
+\]
+
+Et la dérivée de la perte par rapport à une entrée $x_{ci,i,j}$ de la manière suivante, avec $sf$ la taille du filtre :
+
+\[
+\frac{\partial L}{\partial x_{ci,i,j}} = \sum_{ici=0}^{ci-1} \sum_{fi=0}^{sf-1} \sum_{fj=0}^{sf-1} \frac{\partial L}{\partial y_{ici,i-fi,j-fj}} \cdot f_{ici,ci,fi,fj}
+\]
+
 \subsection{Pooling}
+
+Il existe également des couches de pooling qui permettent de réduire la taille des entrées sans perdre trop d'informations. Il existe plusieurs manières de faire du pooling, mais dans le cadre de ce TM, nous allons utiliser le max pooling. Le max pooling nécesssite de déterminer à l'avance une pool size ($ps$) et prendra comme entrée une matrice de dimensions $si \times si$ pour produire une matrice de dimensions $(si / ps) \times (si / ps)$. Les couches de pooling n'ont pas de paramètres à entrainer. Pour calculer la valeur d'une cellule de sortie $y_{i,j}$ avec une matrice d'entrée $x$, voici la formule à utiliser :
+
+\[
+% max... idk how to write this in latex
+\]
 
 \subsection{CNN complet}
 
