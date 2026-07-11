@@ -306,14 +306,56 @@ Pour créer un CNN complet, nous avons souvent une architecture qui commence par
 
 \section{Dropout}
 
+Une autre couche qui est très utile dans dans les CNN est la couche de dropout. Cette couche permet au modèele de ne pas trop dépendre de certains neurones spécifiques, ce qui permet au final d'avoir un modèle de meilleure qualité. Le dropout consiste à désactiver aléatoirement un certain pourcentage de neurones dans une couche (dropout rate) ($dr$). Pour une entrée $x$ avec $N$ scalaires, nous allons désactiver aléatoirement $N \cdot dr$ scalaires en mettant leur valeur de sortie à $0$. Pour les scalaires qui ne sont pas désactivés, nous allons diviser leur valeur de sortie par $(1 - dr)$ pour compenser le fait que certains neurones ont été désactivés. Ainsi, la somme des valeurs de sortie sera la même que si aucun neurone n'avait été désactivé.
+
+\medskip
+
+Notez que le dropout n'est utilisé que pendant l'entrainement du modèle. Pendant l'inférence, aucun neurone n'est désactivé et les valeurs de sortie ne sont pas divisées par $(1 - dr)$.
+
 \section{Architecture du modèle final}
+
+Notez que dans l'architecture du modèle final, il y a également des couches de ReLU après les couches de pooling. Cela veut dire que les valeurs de sortie des couches de pooling sont passées à travers la fonction ReLU avant d'être données à la couche suivante. Pour la dérivée de la perte par rapport à la valeur d'entrée de la couche ReLU, le concept reste le même que pour la fonction d'activation ReLU dans un perceptron. Si la valeur d'entrée est négative, la dérivée de la perte par rapport à cette valeur d'entrée est égale à 0. Sinon, elle est égale à la dérivée de la perte par rapport à la valeur de sortie.
+
+\medskip
+
+Voici l'architecture finale de notre modèle couche par couche :
+
+\begin{enumerate}
+\item Couche de convolution avec 28x28 pixels d'entrée et 32 filtres de taille 3x3.
+\item Couche de pooling avec 32 canaux d'entrée, une pool size de 2 suivie d'une couche ReLU.
+\item Couche de dropout avec un dropout rate de 0.25.
+
+\item Couche de convolution avec 32 canaux d'entrée de taille 13x13 chacun et 64 filtres de taille 4x4.
+\item Couche de pooling avec 64 canaux d'entrée, une pool size de 2 suivie d'une couche ReLU.
+\item Couche de dropout avec un dropout rate de 0.25.
+
+\item Couche de MLP avec $64 \cdot 5 \cdot 5 = 1600$ entrées et 128 neurones suivie d'une couche ReLU.
+\item Couche de dropout avec un dropout rate de 0.5.
+
+\item Couche de MLP avec 128 entrées et 10 neurones suivie d'une couche tanh.
+\end{enumerate}
 
 \section{Implémentation en C et CUDA}
 
-\subsection{Moteur d'inférence en C}
-
 \subsection{Moteur d'entrainement en CUDA}
 
+Pour entrainer le modèle, nous allons utiliser le language CUDA. C'est un language de programmation développé par NVIDIA qui permet d'utiliser la puissance des cartes graphiques NVIDIA pour effectuer beaucoup de calculs en parallèle. Le parallelisme est très utile dans l'entrainement d'un modèle de deep learning, car beaucoup de calculs sont indépendants les uns des autres tout en suivant un même algorithme, ce qui nous permet des les effectuer en parallèle tout en gagnant beaucoup de temps.
+
+\medskip
+
+Pour l'entrainement du modèle, nous allons utiliser le dataset MNIST. Il contient 60'000 images de chiffres manuscrits pour l'entrainement et 10'000 images pour tester les performances du modèle. Chaque image est donc représentée par une matrice de dimensions $28 \times 28$ avec des valeurs entre $0$ et $255$. Chaque image est également associée à un label qui correspond au chiffre représenté sur l'image. Le label est représenté par un entier entre $0$ et $9$.
+
+\medskip
+
+Avec le code final que vous pouvez trouver sur mon repository Github, j'ai pu entrainer le modèle sur le dataset MNIST pendant presque 2 heures sur mon ordinateur avec une carte graphique NVIDIA GeForce GTX 1660 super. Le code a 100 epochs, c'est à dire qu'il va faire entrainer le modèle 100 fois sur chacunes des 60'000 images en tout. Au pic de performance du modèle, il a pu atteindre une précision de 98.44\% sur le dataset de test. Cela veut dire que sur les 10'000 images de test, le modèle a pu correctement reconnaitre 9'844 images.
+% Add human performance comparison here w/ source in latex approved format or whatever
+
+\subsection{Moteur d'inférence en C}
+
+Le désavantage du CUDA est qu'il ne fonctionne que sur un ordinateur muni d'une carte graphique NVIDIA. C'est pour cela que j'ai également écrit le code pour l'inférence du modèle en C qui peut lui être exécuté sur à peu près n'importe quel ordinateur. Le code est majoritairement compose de copiés-colés du code CUDA avec quelques différences. La vitesse du modèle n'est pas un problème ici, car l'inférence d'un modèle requiert beaucoup moins de calculs que l'entrainement étant donné que l'entrainement requiert également de faire la backpropagation et ce sur $100 * 60'000 = 6'000'000$ images. Le code C pour l'inférence du modèle est également disponible sur mon repository Github.
+
 \subsection{Interface utilisateur}
+
+j'ai également écrit une interface utilisateur en HTML et JavaScript qui permet de dessiner un chiffre manuscrit sur un canvas et de l'envoyer au modèle pour qu'il le reconnaisse. Elle est également disponible sur mon repository Github.
 
 \end{document}
