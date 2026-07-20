@@ -26,7 +26,7 @@ Implémentation d'un CNN en C et CUDA pour la reconnaissance de chiffres manuscr
 
 \begin{abstract}
 
-Les réseaux de neurones à convolution (CNN) sont très utilisés de nos jours pour la reconnaissance d'images. Nous allons en implémenter un en utilisant les languages C et CUDA. Son but sera de lire un chiffre manuscrit et sera entrainé sur le dataset MNIST, en utilisant une carte graphique NVIDIA.
+Les réseaux de neurones à convolution (CNN) sont très utilisés de nos jours pour la reconnaissance d'images. Nous allons en implémenter un en utilisant les langages C et CUDA. Il aura pour but de lire un chiffre manuscrit et sera entraîné sur le dataset MNIST, en utilisant une carte graphique NVIDIA.
 
 \end{abstract}
 
@@ -37,7 +37,7 @@ Les réseaux de neurones à convolution (CNN) sont très utilisés de nos jours 
 \newpage
 
 \section{Introduction}
-Pour un humain, être capable de lire un chiffre manuscrit parrait être une tache évidente. Cependant, pour un ordinateur, la tache est bien plus complexe que pour un humain, car la tache revient à créer un modèle purement mathématique qui recoit une liste de pixels et qui devrait comprendre comment ces différents pixels s'associent ensemble pour que finalement le modèle sorte un unique chiffre. Pour résoudre ce problème, il y a plusieurs méthodes possibles. Une des méthodes les plus simples est le perceptrons à plusieurs couches (MLP), mais les CNN sont plus efficaces pour les tâches de reconnaissance d'images. Un CNN est un type de réseau de neurones qui a pour particularité d'utiliser des opérations de convolution pour extraire des caractéristiques de l'image. Ce TM aura pour but d'implémenter ce type de réseau de neurones en CUDA pour la partie entrainement et par la suite en C pour la partie inférence.
+Pour un humain, être capable de lire un chiffre manuscrit paraît être une tâche évidente. Cependant, pour un ordinateur, la tâche est bien plus complexe que pour un humain, car la tâche revient à créer un modèle purement mathématique qui reçoit une liste de pixels et qui devrait comprendre comment ces différents pixels s'associent ensemble pour que finalement le modèle sorte un unique chiffre. Pour résoudre ce problème, il y a plusieurs méthodes possibles. Une des méthodes les plus simples est le perceptron à plusieurs couches (MLP), mais les CNN sont plus efficaces pour les tâches de reconnaissance d'images. Un CNN est un type de réseau de neurones qui a pour particularité d'utiliser des opérations de convolution pour extraire des caractéristiques de l'image. Ce TM aura pour but d'implémenter ce type de réseau de neurones en CUDA pour la partie entrainement et par la suite en C pour la partie inférence.
 
 \section{Avertissement}
 
@@ -49,21 +49,21 @@ Pour faire un modèle qui est capable de lire un chiffre manuscrit, il faut d'ab
 
 \medskip
 
-Chaque chiffre manuscrit est une image de $28 \times 28$ pixels avec à chaque fois $256$ différentes intensités de noir. C'est à dire que si la valeur du pixel est de $0$, il correspond a un pixel complètement blanc et si la valeur du pixel est de $255$, il correspond à un pixel complètement noir. Les valeurs entre deux correspondent à différentes intensités de gris. Notez que la valeur maximale d'un pixel correspond à $255$ et non $256$, tout simplement parce qu'il y a $256$ valeurs différentes et que la valeur $0$ est incluse, ce qui nous laisse $255$ valeurs positives. Nous allons ensuite diviser tous les pixels par $255$, ce qui nous permet d'avoir des valeurs entre $0.0$ et $1.0$ que nous allons pouvoir donner au modèle. Nous avons donc $28 \times 28 = 784$ pixels dans une image. Notre modèle aura donc $28 \times 28 = 784$ entrées avec des valeurs comprises entre $0.0$ et $1.0$ à chaque fois.
+Chaque chiffre manuscrit est une image de $28 \times 28$ pixels avec à chaque fois $256$ différentes intensités de noir. C'est-à-dire que si la valeur du pixel est de $0$, il correspond à un pixel complètement blanc et si la valeur du pixel est de $255$, il correspond à un pixel complètement noir. Les valeurs entre deux correspondent à différentes intensités de gris. Notez que la valeur maximale d'un pixel correspond à $255$ et non $256$, tout simplement parce qu'il y a $256$ valeurs différentes et que la valeur $0$ est incluse, ce qui nous laisse $255$ valeurs positives. Nous allons ensuite diviser tous les pixels par $255$, ce qui nous permet d'avoir des valeurs entre $0.0$ et $1.0$ que nous allons pouvoir donner au modèle. Nous avons donc $28 \times 28 = 784$ pixels dans une image. Notre modèle aura donc $28 \times 28 = 784$ entrées avec des valeurs comprises entre $0.0$ et $1.0$ à chaque fois.
 
 \medskip
 
-Nous voulons obtenir en sortie 10 probabilités pour chacun des 10 chiffres possibles (de $0$ à $9$). Il y aura donc 10 neurones en sortie, chacuns des différents chiffres sera assigné à un neurone et les valeurs de sortie des neurones se situeront entre $-1.0$ et $1.0$. Une valeur de $-1.0$ correspond à une certitude qu'il ne s'agit pas du chiffre associé à l'image et $1.0$ correspond à une certitude qu'il s'agit du bon chiffre.
+Nous voulons obtenir en sortie 10 probabilités pour chacun des 10 chiffres possibles (de $0$ à $9$). Il y aura donc 10 neurones en sortie, chacun des différents chiffres sera assigné à un neurone et les valeurs de sortie des neurones se situeront entre $-1.0$ et $1.0$. Une valeur de $-1.0$ correspond à une certitude qu'il ne s'agit pas du chiffre associé à l'image et $1.0$ correspond à une certitude qu'il s'agit du bon chiffre.
 
 \section{MLP}
 
-L'architecture la plus simple qu'on peut utiliser est le perceptron à plusieurs couches (MLP), il est composé de plusieurs couches composées elles même de plusieurs perceptrons. Bien qu'elle soit ancienne, elle est toujours utilisée elle même à l'intérieur de beaucoup d'autres architectures comme le CNN.
+L'architecture la plus simple qu'on peut utiliser est le perceptron à plusieurs couches (MLP), il est composé de plusieurs couches composées elles-mêmes de plusieurs perceptrons. Bien qu'elle soit ancienne, elle est toujours utilisée elle-même à l'intérieur de beaucoup d'autres architectures comme le CNN.
 
 \subsection{Perceptron}
 
-Le perceptron est la brique de base de l'intelligence artificielle. Il accepte un nombre fixe d'entrées (inputs) ($N$) et nous donne un seul nombre en sortie (output). Le perceptron peut en lui même déjà être utilisé pour créer des systèmes de classification simples.
+Le perceptron est la brique de base de l'intelligence artificielle. Il accepte un nombre fixe d'entrées (inputs) ($N$) et nous donne un seul nombre en sortie (output). Le perceptron peut en lui-même déjà être utilisé pour créer des systèmes de classification simples.
 
-Chaque entrée s'appelle $x_n$ et est représentée sous forme d'un nombre naturel. Pour chaque entrée, il y a un poids (weight) associé ($w_n$). En plus des entrées et des poids, il y a un biais (bias) ($b$) asocié à chaque neurone. Par convention, ces poids et biais seront appelés paramètres. Ces paramètres sont initialisés de manière aléatoire. Pour calculer la valeur de sortie du perceptron ($y$), il faut également choisir une fonction d'activation ($f$). Il peut s'agir théoriquement d'à peu près n'importe quelle fonction mathématique, mais dans le cadre de ce TM, nous allons utiliser deux fonctions pricipalement : ReLU et tanh
+Chaque entrée s'appelle $x_n$ et est représentée sous forme d'un nombre naturel. Pour chaque entrée, il y a un poids (weight) associé ($w_n$). En plus des entrées et des poids, il y a un biais (bias) ($b$) associé à chaque neurone. Par convention, ces poids et biais seront appelés paramètres. Ces paramètres sont initialisés de manière aléatoire. Pour calculer la valeur de sortie du perceptron ($y$), il faut également choisir une fonction d'activation ($f$). Il peut s'agir théoriquement d'à peu près n'importe quelle fonction mathématique, mais dans le cadre de ce TM, nous allons utiliser deux fonctions principalement : ReLU et tanh
 
 \medskip
 
@@ -99,7 +99,7 @@ y = f(z) = f\left(\sum_{n=0}^{N-1} w_n x_n + b\right)
 
 \subsection{Fonctions d'activation}
 
-La fonction d'activation permet d'ajouter de la non linéarité au modèle. Cela permet au modèle d'apprendre des motifs bien plus complexes. Sans fonction d'activation, le modèle ne pourrait apprendre que des motifs linéaires, ce qui est beaucoup trop limité pour des tâches de rconnaissance d'images.
+La fonction d'activation permet d'ajouter de la non linéarité au modèle. Cela permet au modèle d'apprendre des motifs bien plus complexes. Sans fonction d'activation, le modèle ne pourrait apprendre que des motifs linéaires, ce qui est beaucoup trop limité pour des tâches de reconnaissance d'images.
 
 \subsubsection{La fonction $ReLU$}
 La fonction $ReLU$ est la suivante :
@@ -112,7 +112,7 @@ x \ \text{si} \ x \geq 0
 \end{cases}
 \]
 
-Elle parrait très simple, mais quand on en combine un grand nombre ensemble, elle permet au modèle d'apprendre des motifs très complexes.
+Elle paraît très simple, mais quand on en combine un grand nombre, elle permet au modèle d'apprendre des motifs très complexes.
 
 \subsubsection{La fonction $tanh$}
 La fonction $tanh$ (tangente hyperbolique) est utilisée pour confiner les valeurs de sorties entre la valeur $-1.0$ et $1.0$. Dans le contexte de la reconnaissance d'images, elle permet de représenter le niveau de certitude de notre modèle par rapport à différentes prédictions. La fonction softmax est également souvent utilisée mais par simplicité j'ai décidé d'utiliser tanh pour ce TM.
@@ -137,7 +137,7 @@ La fonction $tanh$ (tangente hyperbolique) est utilisée pour confiner les valeu
 \end{tikzpicture}
 
 \subsection{Plusieurs neurones}
-Pour former un MLP complet, il faut agencer plusieurs couches de plusieurs perceptrons ensemble. A part pour la couche initiale du modèle, la valeur de l'entrée numéro $i$ de n'importe quel neurone dans la couche numéro $c$ correspondra à la valeur de sortie du neurone $i$ sur la couche $c - 1$. Si nous sommes sur la couche initiale du réseau, les entrées des différents neuronnes correspondent aux entrées du modèle (dans notre cas, les différents pixels d'une image). Les sorties des différents neurones de la couche finale d'un modèle correspondent aux sorties du modèle (dans notre cas, les différentes probabilités pour chacun des chiffres possibles).
+Pour former un MLP complet, il faut agencer plusieurs couches de plusieurs perceptrons ensemble. À part pour la couche initiale du modèle, la valeur de l'entrée numéro $i$ de n'importe quel neurone dans la couche numéro $c$ correspondra à la valeur de sortie du neurone $i$ sur la couche $c - 1$. Si nous sommes sur la couche initiale du réseau, les entrées des différents neurones correspondent aux entrées du modèle (dans notre cas, les différents pixels d'une image). Les sorties des différents neurones de la couche finale d'un modèle correspondent aux sorties du modèle (dans notre cas, les différentes probabilités pour chacun des chiffres possibles).
 
 \medskip
 
@@ -193,11 +193,11 @@ Nous pouvons schématiser un MLP ainsi :
 
 \section{Backpropagation}
 
-Pour que notre modèle puisse correctement prédire les sorties correctes, il va falloir l'entainer. Sans entrainement, les prédictions seront tout simplement aléatoires. Pour entrainer notre modèle, nous allons utiliser la backpropagation qui est considérée comme l'algorithme le plus important dans le domaine du deep learning. Le but sera de faire la dérivée de la perte par rapport aux différents paramètres du modèle pour savoir comment modifier ces derniers tel que la perte diminue et que le modèle fasse donc de meilleures prédictions.
+Pour que notre modèle puisse correctement prédire les sorties correctes, il va falloir l'entraîner. Sans entrainement, les prédictions seront tout simplement aléatoires. Pour entraîner notre modèle, nous allons utiliser la backpropagation qui est considérée comme l'algorithme le plus important dans le domaine du deep learning. Le but sera de faire la dérivée de la perte par rapport aux différents paramètres du modèle pour savoir comment modifier ces derniers tel que la perte diminue et que le modèle fasse donc de meilleures prédictions.
 
 \subsection{Perte}
 
-Avec la backpropagation, notre but sera de minimiser la perte (loss) ($L$) du modèle. Si avec une certaine entrée, on obtient pour la sortie numéro $n$ une valeur de $y_n$, alors que nous voulions obtenir une valeur de $l_n$, nous pouvons calculer la perte d'une sortie en soustrayant la valeur que nous attendions à la valeur que nous avons obtenu et élever le tout au carré. Cet algorithme s'appelle l'erreur quadratique (Mean Squared Error ou MSE en anglais). Nous pouvons ainsi calculer la perte d'une sortie spécifique $L_n$ de la manière suivante :
+Avec la backpropagation, notre but sera de minimiser la perte (loss) ($L$) du modèle. Si avec une certaine entrée, on obtient pour la sortie numéro $n$ une valeur de $y_n$, alors que nous voulions obtenir une valeur de $l_n$, nous pouvons calculer la perte d'une sortie en soustrayant la valeur que nous attendions à la valeur que nous avons obtenue et élever le tout au carré. Cet algorithme s'appelle l'erreur quadratique (Mean Squared Error ou MSE en anglais). Nous pouvons ainsi calculer la perte d'une sortie spécifique $L_n$ de la manière suivante :
 
 \[
 L_n = (y_n - l_n)^2
@@ -211,7 +211,7 @@ L = \sum_{n=0}^{N-1} (y_n - l_n)^2
 
 \medskip
 
-La perte en elle même n'est intéressante que pour suivre l'évolution de la qualité du modèle. Comme expliqué plus haut, ce qui va vraiment nous intéresser, c'est la dérivée de la perte par rapport aux différents paramètres du modèle. C'est ici qu'entre en jeu la backpropagation. Pour calculer la dérivée de la perte par rapport aux différents poids et biais, nous allons utiliser la règle de la chaine (chain rule). Pour commencer la chaine, nous allons devoir calculer la dérivée des pertes par rapport aux différentes sorties associées du modèle. Pour une sortie $y_n$ associée à une valeur attendue $l_n$, la dérivée de la perte totale $L$ par rapport à cette sortie est la suivante :
+La perte en elle-même n'est intéressante que pour suivre l'évolution de la qualité du modèle. Comme expliqué plus haut, ce qui va vraiment nous intéresser, c'est la dérivée de la perte par rapport aux différents paramètres du modèle. C'est ici qu'entre en jeu la backpropagation. Pour calculer la dérivée de la perte par rapport aux différents poids et biais, nous allons utiliser la règle de la chaîne (chain rule). Pour commencer la chaîne, nous allons devoir calculer la dérivée des pertes par rapport aux différentes sorties associées du modèle. Pour une sortie $y_n$ associée à une valeur attendue $l_n$, la dérivée de la perte totale $L$ par rapport à cette sortie est la suivante :
 
 \[
 \frac{\partial L}{\partial y_n} = 2 \cdot (y_n - l_n)
@@ -219,7 +219,7 @@ La perte en elle même n'est intéressante que pour suivre l'évolution de la qu
 
 \subsection{Backpropagation}
 
-Ensuite, nous allons pouvoir utiliser la règle de la chaine pour faire la backpropagation et calculer la dérivée de la perte par rapport aux différents paramètres du modèle. Pour commencer, il va falloir calculer la dérivée de la perte par rapport aux valeurs Z. Pour un neurone $n$ dont la valeur de sortie équivaut à $y_n$, la dérivée de la perte par rapport à la valeur Z est la suivante si la fonction d'activation est $tanh$ :
+Ensuite, nous allons pouvoir utiliser la règle de la chaîne pour faire la backpropagation et calculer la dérivée de la perte par rapport aux différents paramètres du modèle. Pour commencer, il va falloir calculer la dérivée de la perte par rapport aux valeurs Z. Pour un neurone $n$ dont la valeur de sortie équivaut à $y_n$, la dérivée de la perte par rapport à la valeur Z est la suivante si la fonction d'activation est $tanh$ :
 
 \[
 \frac{\partial L}{\partial z_n} = \frac{\partial L}{\partial y_n} \cdot \frac{\partial y_n}{\partial z_n} = \frac{\partial L}{\partial y_n} \cdot (1 - y_n^2)
@@ -252,20 +252,20 @@ Et pour un biais $b_n$ associé à un neurone $n$, la dérivée de la perte par 
 
 \medskip
 
-Notez également la présence des valeurs y qui correspondent aux sorties des neurones. Pour un neurone dans la couche finale du modèle, nous avons déjà montré comment cette dérivée ce calcule. Pour un neurone dans une autre couche, il va falloir faire la somme pondérée des dérivées des neurones de la couche suivante. Pour un neurone $n$ de la couche $c$ et $M$ neurones dans la couche $c+1$, la dérivée de la perte par rapport à la valeur de sortie de ce neurone est la suivante :
+Notez également la présence des valeurs y qui correspondent aux sorties des neurones. Pour un neurone dans la couche finale du modèle, nous avons déjà montré comment cette dérivée se calcule. Pour un neurone dans une autre couche, il va falloir faire la somme pondérée des dérivées des neurones de la couche suivante. Pour un neurone $n$ de la couche $c$ et $M$ neurones dans la couche $c+1$, la dérivée de la perte par rapport à la valeur de sortie de ce neurone est la suivante :
 
 \[
 \frac{\partial L}{\partial y_{c,n}} = \sum_{m=0}^{M-1} \frac{\partial L}{\partial z_{c+1,m}} \cdot w_{c+1,m,n}
 \]
 
-Les dérivées des neurones des couches précédants la couche de sortie nécéssitent de connaitre les dérivées des neurones de la couche qui suit ces dits neurones, il est donc nécéssaire de faire la backpropagation en calculant d'abord les dérivées des neurones de la couche de sortie, puis celles de la couche précédente et ainsi de suite jusqu'à la couche initiale.
+Les dérivées des neurones des couches précédant la couche de sortie nécessitent de connaître les dérivées des neurones de la couche qui suit ces dits neurones, il est donc nécessaire de faire la backpropagation en calculant d'abord les dérivées des neurones de la couche de sortie, puis celles de la couche précédente et ainsi de suite jusqu'à la couche initiale.
 
 \subsubsection{SGD}
 
-Maintenant que nous avons les dérivées de la perte par rapport aux différents paramètres du modèle, nous allons devoir mettre à jour ces paramètres tel que la perte diminue. Pour ce faire, nous allons utiliser l'algorithme de descente de gradient stochastique (Stochastic Gradient Descent ou SGD en anglais). Cet algorithme est très simple à comprendre. Si nous conaissons la dérivée de la perte par rapport à un paramètre $pi_{n}$, nous savons que si nous changeons la valeur de ce paramètre dans le sens opposé à la dérivée, la perte va diminuer. Étant donné que nous ne voulons pas change la valeur de ce paramètre trop rapidement, car nous pourions ainsi dépasser le minimum de la fonction de perte, nous allons multiplier la dérivée par un scalaire appelé le taux d'apprentissage (learning rate) ($\alpha$). Dans le cadre de ce TM, sa valeur est de 0.05. La formule pour déterminer le nouveau paramètre ($pf_{n}$) est la suivante :
+Maintenant que nous avons les dérivées de la perte par rapport aux différents paramètres du modèle, nous allons devoir mettre à jour ces paramètres tel que la perte diminue. Pour ce faire, nous allons utiliser l'algorithme de descente de gradient stochastique (Stochastic Gradient Descent ou SGD en anglais). Cet algorithme est très simple à comprendre. Si nous connaissons la dérivée de la perte par rapport à un paramètre $pi_n$, nous savons que si nous changeons la valeur de ce paramètre dans le sens opposé à la dérivée, la perte va diminuer. Étant donné que nous ne voulons pas changer la valeur de ce paramètre trop rapidement, car nous pourrions ainsi dépasser le minimum de la fonction de perte, nous allons multiplier la dérivée par un scalaire appelé le taux d'apprentissage (learning rate) ($\alpha$). Dans le cadre de ce TM, sa valeur est de 0.05. La formule pour déterminer le nouveau paramètre ($pf_n$) est la suivante :
 
 \[
-p_{nf} = p_{ni} - \alpha \cdot \frac{\partial L}{\partial p_{ni}}
+pf_n = pi_n - \alpha \cdot \frac{\partial L}{\partial pi_n}
 \]
 
 \section{CNN}
@@ -274,13 +274,13 @@ En utilisant l'architecture MLP, nous avons pu créer un modèle capable de reco
 
 \subsection{Convolution}
 
-La particularité principale d'un CNN est l'utilisation des couches de convolution. Une opération de convolution va appliquer un filtre (kernel ou filter en anglais) sur notre entrée. Le filtre et l'entrée sont tous deux représentées sous forme de matrices. Cela permet au modèle de comprendre des motifs en 2d dans l'image. Le filtre est une matrice bien plus petite que l'image d'entrée, de dimensions $sf \times sf$. Notez que les poids du filtre font partie des paramètres du modèle à optimiser avec la backpropagation. La matrice d'entrée est de dimension $si \times si$. Dans le cadre du TM, la sortie sera représentée sous forme d'une matrice de dimensions $(si - sf + 1) \times (si - sf + 1)$. Pour calculer la valeur d'une cellule de sortie $y_{i,j}$ avec une matrice d'entrée $x$ et un filtre $f$, voici la formule à utiliser :
+La particularité principale d'un CNN est l'utilisation des couches de convolution. Une opération de convolution va appliquer un filtre (kernel ou filter en anglais) sur notre entrée. Le filtre et l'entrée sont tous deux représentés sous forme de matrices. Cela permet au modèle de comprendre des motifs en 2d dans l'image. Le filtre est une matrice bien plus petite que l'image d'entrée, de dimensions $sf \times sf$. Notez que les poids du filtre font partie des paramètres du modèle à optimiser avec la backpropagation. La matrice d'entrée est de dimension $si \times si$. Dans le cadre du TM, la sortie sera représentée sous forme d'une matrice de dimensions $(si - sf + 1) \times (si - sf + 1)$. Pour calculer la valeur d'une cellule de sortie $y_{i,j}$ avec une matrice d'entrée $x$ et un filtre $f$, voici la formule à utiliser :
 
 \[
 y_{i,j} = \sum_{ii=0}^{sf-1} \sum_{ji=0}^{sf-1} x_{i+ii,j+ji} \cdot f_{ii,ji}
 \]
 
-Dans une couche de convolution, il y a plusieurs filtres qui peuvent être utilisés. Chaque filtre va produire une sortie différente, chaque sortie s'appellant un canal (channel). Si nous avons plusieurs canaux de sortie, vous noterez qu'il faudra également accepter plusieurs canaux d'entrée. Si nous avons $nc$ canaux d'entrée avec $nf$ filtres (donc également $nf$ canaux de sortie, nous devons utiliser un nombre $nf$ de filtres et une entrée représentés par des tenseurs d'ordre 3. Ainsi, nous avons $nf$ filtres de dimensions $nc \times sf \times sf$ et une entrée de dimensions $nc \times si \times si$. La sortie sera donc représentée par un tenseur de dimensions $nf \times (si - sf + 1) \times (si - sf + 1)$. Nous pouvons également représenter tous les filtres sous forme d'un tenseur d'ordre 4 de dimensions $nf \times nc \times sf \times sf$. Pour calculer la valeur d'une cellule de sortie $y_{ci,i,j}$ avec notre tenseur d'ordre 4 de filtres $f$ et notre tenseur d'ordre 3 pour nos entrées $x$, voici la formule à utiliser : 
+Dans une couche de convolution, il y a plusieurs filtres qui peuvent être utilisés. Chaque filtre va produire une sortie différente, chaque sortie s'appelant un canal (channel). Si nous avons plusieurs canaux de sortie, vous noterez qu'il faudra également accepter plusieurs canaux d'entrée. Si nous avons $nc$ canaux d'entrée avec $nf$ filtres (donc également $nf$ canaux de sortie), nous devons utiliser un nombre $nf$ de filtres et une entrée représentés par des tenseurs d'ordre 3. Ainsi, nous avons $nf$ filtres de dimensions $nc \times sf \times sf$ et une entrée de dimensions $nc \times si \times si$. La sortie sera donc représentée par un tenseur de dimensions $nf \times (si - sf + 1) \times (si - sf + 1)$. Nous pouvons également représenter tous les filtres sous forme d'un tenseur d'ordre 4 de dimensions $nf \times nc \times sf \times sf$. Pour calculer la valeur d'une cellule de sortie $y_{ci,i,j}$ avec notre tenseur d'ordre 4 de filtres $f$ et notre tenseur d'ordre 3 pour nos entrées $x$, voici la formule à utiliser : 
 
 \[
 y_{ci,i,j} = \sum_{ici=0}^{ci-1} \sum_{ii=0}^{sf-1} \sum_{ji=0}^{sf-1} x_{ici,i+ii,j+ji} \cdot f_{ci,ici,i,j}
@@ -300,7 +300,7 @@ Et la dérivée de la perte par rapport à une entrée $x_{ici,i,j}$ de la mani�
 
 \subsection{Pooling}
 
-Il existe également des couches de pooling qui permettent de réduire la taille des entrées sans perdre trop d'informations. Il existe plusieurs manières de faire du pooling, mais dans le cadre de ce TM, nous allons utiliser le max pooling. Le max pooling nécesssite de déterminer à l'avance une pool size ($ps$) et prendra comme entrée une matrice de dimensions $si \times si$ pour produire une matrice de dimensions $(si / ps) \times (si / ps)$. Les couches de pooling n'ont pas de paramètres à entrainer. La valeur d'une cellule de sortie $y_{i,j}$ est la valeur maximale dans la sous-matrice de dimensions $ps \times ps$ de l'entrée $x$ commençant à la position $i \cdot ps, j \cdot ps$ et finissant à la position $(i + 1) \cdot ps - 1, (j + 1) \cdot ps - 1$.
+Il existe également des couches de pooling qui permettent de réduire la taille des entrées sans perdre trop d'informations. Il existe plusieurs manières de faire du pooling, mais dans le cadre de ce TM, nous allons utiliser le max pooling. Le max pooling nécessite de déterminer à l'avance une pool size ($ps$) et prendra comme entrée une matrice de dimensions $si \times si$ pour produire une matrice de dimensions $(si / ps) \times (si / ps)$. Les couches de pooling n'ont pas de paramètres à entrainer. La valeur d'une cellule de sortie $y_{i,j}$ est la valeur maximale dans la sous-matrice de dimensions $ps \times ps$ de l'entrée $x$ commençant à la position $i \cdot ps, j \cdot ps$ et finissant à la position $(i + 1) \cdot ps - 1, (j + 1) \cdot ps - 1$.
 
 \medskip
 
@@ -316,7 +316,7 @@ Pour créer un CNN complet, nous avons souvent une architecture qui commence par
 
 \section{Dropout}
 
-Une autre couche qui est très utile dans dans les CNN est la couche de dropout. Cette couche permet au modèele de ne pas trop dépendre de certains neurones spécifiques, ce qui permet au final d'avoir un modèle de meilleure qualité. Le dropout consiste à désactiver aléatoirement un certain pourcentage de neurones dans une couche (dropout rate) ($dr$). Pour une entrée $x$ avec $N$ scalaires, nous allons désactiver aléatoirement $N \cdot dr$ scalaires en mettant leur valeur de sortie à $0$. Pour les scalaires qui ne sont pas désactivés, nous allons diviser leur valeur de sortie par $(1 - dr)$ pour compenser le fait que certains neurones ont été désactivés. Ainsi, la somme des valeurs de sortie sera la même que si aucun neurone n'avait été désactivé.
+Une autre couche qui est très utile dans les CNN est la couche de dropout. Cette couche permet au modèle de ne pas trop dépendre de certains neurones spécifiques, ce qui permet au final d'avoir un modèle de meilleure qualité. Le dropout consiste à désactiver aléatoirement un certain pourcentage de neurones dans une couche (dropout rate) ($dr$). Pour une entrée $x$ avec $N$ scalaires, nous allons désactiver aléatoirement $N \cdot dr$ scalaires en mettant leur valeur de sortie à $0$. Pour les scalaires qui ne sont pas désactivés, nous allons diviser leur valeur de sortie par $(1 - dr)$ pour compenser le fait que certains neurones ont été désactivés. Ainsi, la somme des valeurs de sortie sera la même que si aucun neurone n'avait été désactivé.
 
 \medskip
 
@@ -353,7 +353,7 @@ Voici l'architecture finale de notre modèle couche par couche :
 
 \subsection{Moteur d'entrainement en CUDA}
 
-Pour entrainer le modèle, nous allons utiliser le language CUDA. C'est un language de programmation développé par NVIDIA qui permet d'utiliser la puissance des cartes graphiques NVIDIA pour effectuer beaucoup de calculs en parallèle. Le parallelisme est très utile dans l'entrainement d'un modèle de deep learning, car beaucoup de calculs sont indépendants les uns des autres tout en suivant un même algorithme, ce qui nous permet des les effectuer en parallèle tout en gagnant beaucoup de temps.
+Pour entrainer le modèle, nous allons utiliser le langage CUDA. C'est un langage de programmation développé par NVIDIA qui permet d'utiliser la puissance des cartes graphiques NVIDIA pour effectuer beaucoup de calculs en parallèle. Le parallélisme est très utile dans l'entrainement d'un modèle de deep learning, car beaucoup de calculs sont indépendants les uns des autres tout en suivant un même algorithme, ce qui nous permet de les effectuer tout en gagnant beaucoup de temps.
 
 \medskip
 
@@ -361,15 +361,15 @@ Pour l'entrainement du modèle, nous allons utiliser le dataset MNIST. Il contie
 
 \medskip
 
-Avec le code final que vous pouvez trouver sur mon repository Github, j'ai pu entrainer le modèle sur le dataset MNIST pendant presque 2 heures sur mon ordinateur avec une carte graphique NVIDIA GeForce GTX 1660 super. Le code a 100 epochs, c'est à dire qu'il va faire entrainer le modèle 100 fois sur chacunes des 60'000 images en tout. Au pic de performance du modèle, il a pu atteindre une précision de 98.44\% sur le dataset de test. Cela veut dire que sur les 10'000 images de test, le modèle a pu correctement reconnaitre 9'844 images.
+Avec le code final que vous pouvez trouver sur mon repository GitHub, j'ai pu entrainer le modèle sur le dataset MNIST pendant presque 2 heures sur mon ordinateur avec une carte graphique NVIDIA GeForce GTX 1660 super. Le code a 100 epochs, c'est-à-dire qu'il va faire entrainer le modèle 100 fois sur chacune des 60'000 images en tout. Au pic de performance du modèle, il a pu atteindre une précision de 98.44\% sur le dataset de test. Cela veut dire que sur les 10'000 images de test, le modèle a pu correctement reconnaitre 9'844 images.
 % Add human performance comparison here w/ source in latex approved format or whatever
 
 \subsection{Moteur d'inférence en C}
 
-Le désavantage du CUDA est qu'il ne fonctionne que sur un ordinateur muni d'une carte graphique NVIDIA. C'est pour cela que j'ai également écrit le code pour l'inférence du modèle en C qui peut lui être exécuté sur à peu près n'importe quel ordinateur. Le code est majoritairement composé de copiés-collés du code CUDA avec quelques différences. La vitesse du modèle n'est pas un problème ici, car l'inférence d'un modèle requiert beaucoup moins de calculs que l'entrainement étant donné que l'entrainement requiert également de faire la backpropagation et ce sur $100 \cdot 60'000 = 6'000'000$ images. Le code C pour l'inférence du modèle est également disponible sur mon repository Github.
+Le désavantage du CUDA est qu'il ne fonctionne que sur un ordinateur muni d'une carte graphique NVIDIA. C'est pour cela que j'ai également écrit le code pour l'inférence du modèle en C qui peut lui être exécuté sur à peu près n'importe quel ordinateur. Le code est majoritairement composé de copiés-collés du code CUDA avec quelques différences. La vitesse du modèle n'est pas un problème ici, car l'inférence d'un modèle requiert beaucoup moins de calculs que l'entrainement étant donné que l'entrainement requiert également de faire la backpropagation et ce sur $100 \cdot 60'000 = 6'000'000$ images. Le code C pour l'inférence du modèle est également disponible sur mon repository GitHub.
 
 \subsection{Interface utilisateur}
 
-j'ai également écrit une interface utilisateur en HTML et JavaScript qui permet de dessiner un chiffre manuscrit sur un canvas et de l'envoyer au modèle pour qu'il le reconnaisse. Elle est également disponible sur mon repository Github.
+J'ai également écrit une interface utilisateur en HTML et JavaScript qui permet de dessiner un chiffre manuscrit sur un canvas et de l'envoyer au modèle pour qu'il le reconnaisse. Elle est également disponible sur mon repository GitHub.
 
 \end{document}
