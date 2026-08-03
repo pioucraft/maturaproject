@@ -37,7 +37,7 @@ Les réseaux de neurones à convolution (CNN) sont très utilisés de nos jours 
 \newpage
 
 \section{Introduction}
-Pour un humain, être capable de lire un chiffre manuscrit paraît être une tâche évidente. Cependant, pour un ordinateur, la tâche est bien plus complexe que pour un humain, car la tâche revient à créer un modèle purement mathématique qui reçoit une liste de pixels et qui devrait comprendre comment ces différents pixels s'associent ensemble pour que finalement le modèle sorte un unique chiffre. Pour résoudre ce problème, il y a plusieurs méthodes possibles. Une des méthodes les plus simples est le perceptron à plusieurs couches (MLP), mais les CNN sont plus efficaces pour les tâches de reconnaissance d'images. Un CNN est un type de réseau de neurones qui a pour particularité d'utiliser des opérations de convolution pour extraire des caractéristiques de l'image. Ce TM aura pour but d'implémenter ce type de réseau de neurones en CUDA pour la partie entrainement et par la suite en C pour la partie inférence.
+Pour un humain, être capable de lire un chiffre manuscrit paraît être une tâche évidente. Cependant, pour un ordinateur, la tâche est bien plus complexe que pour un humain, car cette dernière revient à créer un modèle purement mathématique qui reçoit une liste de pixels et qui devrait comprendre comment ces différents pixels s'associent ensemble pour que finalement le modèle sorte un unique chiffre. Pour résoudre ce problème, il y a plusieurs méthodes possibles. Une des méthodes les plus simples est le perceptron à plusieurs couches (MLP), mais les CNN sont plus efficaces pour les tâches de reconnaissance d'images. Un CNN est un type de réseau de neurones qui a pour particularité d'utiliser des opérations de convolution pour extraire des caractéristiques de l'image. Ce TM aura pour but d'implémenter ce type de réseau de neurones en CUDA pour la partie entrainement et par la suite en C pour la partie inférence.
 
 \section{Avertissement}
 
@@ -53,7 +53,7 @@ Chaque chiffre manuscrit est une image de $28 \times 28$ pixels avec à chaque f
 
 \medskip
 
-Nous voulons obtenir en sortie 10 probabilités pour chacun des 10 chiffres possibles (de $0$ à $9$). Il y aura donc 10 neurones en sortie, chacun des différents chiffres sera assigné à un neurone et les valeurs de sortie des neurones se situeront entre $-1.0$ et $1.0$. Une valeur de $-1.0$ correspond à une certitude qu'il ne s'agit pas du chiffre associé à l'image et $1.0$ correspond à une certitude qu'il s'agit du bon chiffre.
+Nous voulons obtenir en sortie 10 probabilités, une pour chacun des chiffres possibles (de $0$ à $9$). C'est à dire que chaque chiffre sera associé à une probabilité que ce soit ce chiffre là qui est écrit sur l'image fournie au modèle. Il y aura donc 10 neurones en sortie, chacun des différents chiffres sera assigné à un neurone et les valeurs de sortie des neurones se situeront entre $-1.0$ et $1.0$. Une valeur de $-1.0$ correspond à une certitude qu'il ne s'agit pas du chiffre associé à l'image et $1.0$ correspond à une certitude qu'il s'agit du bon chiffre.
 
 \section{MLP}
 
@@ -63,11 +63,11 @@ L'architecture la plus simple qu'on peut utiliser est le perceptron à plusieurs
 
 Le perceptron est la brique de base de l'intelligence artificielle. Il accepte un nombre fixe d'entrées (inputs) ($N$) et nous donne un seul nombre en sortie (output). Le perceptron peut en lui-même déjà être utilisé pour créer des systèmes de classification simples.
 
-Chaque entrée s'appelle $x_n$ et est représentée sous forme d'un nombre naturel. Pour chaque entrée, il y a un poids (weight) associé ($w_n$). En plus des entrées et des poids, il y a un biais (bias) ($b$) associé à chaque neurone. Par convention, ces poids et biais seront appelés paramètres. Ces paramètres sont initialisés de manière aléatoire. Pour calculer la valeur de sortie du perceptron ($y$), il faut également choisir une fonction d'activation ($f$). Il peut s'agir théoriquement d'à peu près n'importe quelle fonction mathématique, mais dans le cadre de ce TM, nous allons utiliser deux fonctions principalement : ReLU et tanh
+Chaque entrée s'appelle $x_n$ et est représentée sous forme d'un nombre rationel. Pour chaque entrée, il y a un poids (weight) associé ($w_n$). En plus des entrées et des poids, il y a un biais (bias) ($b$) associé à chaque neurone. Par convention, ces poids et biais seront appelés paramètres. Ces paramètres sont initialisés de manière aléatoire. Pour calculer la valeur de sortie du perceptron ($y$), il faut également choisir une fonction d'activation ($f$). Il peut s'agir théoriquement d'à peu près n'importe quelle fonction mathématique, mais dans le cadre de ce TM, nous allons utiliser deux fonctions principalement : ReLU et tanh
 
 \medskip
 
-Pour calculer la valeur de sortie de notre perceptron, il faudra d'abord calculer la valeur Z ($z$) en faisant une somme pondérée des entrées et du biais. Ensuite, nous pourrons appliquer la fonction d'activation à la valeur Z. La formule est la suivante :
+Pour calculer la valeur de sortie de notre perceptron, il faudra d'abord calculer la valeur $z$ en faisant une somme pondérée des entrées et du biais. Ensuite, nous pourrons appliquer la fonction d'activation à la valeur . La formule est la suivante :
 
 \[
 y = f(z) = f\left(\sum_{n=0}^{N-1} w_n x_n + b\right)
@@ -112,7 +112,7 @@ x \ \text{si} \ x \geq 0
 \end{cases}
 \]
 
-Elle paraît très simple, mais quand on en combine un grand nombre, elle permet au modèle d'apprendre des motifs très complexes.
+Elle paraît très simple, mais grâce à la non-linéarité qu'elle apporte, elle permet au modèle d'apprendre des motifs très complexes.
 
 \subsubsection{La fonction $tanh$}
 La fonction $tanh$ (tangente hyperbolique) est utilisée pour confiner les valeurs de sorties entre la valeur $-1.0$ et $1.0$. Dans le contexte de la reconnaissance d'images, elle permet de représenter le niveau de certitude de notre modèle par rapport à différentes prédictions. La fonction softmax est également souvent utilisée mais par simplicité j'ai décidé d'utiliser tanh pour ce TM.
@@ -137,7 +137,7 @@ La fonction $tanh$ (tangente hyperbolique) est utilisée pour confiner les valeu
 \end{tikzpicture}
 
 \subsection{Plusieurs neurones}
-Pour former un MLP complet, il faut agencer plusieurs couches de plusieurs perceptrons ensemble. À part pour la couche initiale du modèle, la valeur de l'entrée numéro $i$ de n'importe quel neurone dans la couche numéro $c$ correspondra à la valeur de sortie du neurone $i$ sur la couche $c - 1$. Si nous sommes sur la couche initiale du réseau, les entrées des différents neurones correspondent aux entrées du modèle (dans notre cas, les différents pixels d'une image). Les sorties des différents neurones de la couche finale d'un modèle correspondent aux sorties du modèle (dans notre cas, les différentes probabilités pour chacun des chiffres possibles).
+Pour former un MLP complet, il faut agencer plusieurs couches de plusieurs perceptrons ensemble. Sauf pour la couche initiale du modèle, la valeur de l'entrée numéro $i$ de n'importe quel neurone dans la couche numéro $c$ correspondra à la valeur de sortie du neurone $i$ sur la couche $c - 1$. Si nous sommes sur la couche initiale du réseau, les entrées des différents neurones correspondent aux entrées du modèle (dans notre cas, les différents pixels d'une image). Les sorties des différents neurones de la couche finale d'un modèle correspondent aux sorties du modèle (dans notre cas, les différentes probabilités pour chacun des chiffres possibles).
 
 \medskip
 
@@ -153,9 +153,9 @@ Nous pouvons schématiser un MLP ainsi :
 
 % Input
 \coordinate[left=2cm of center] (input);
-\node[circle, draw, minimum size=0.5cm, below=0.75cm of input] (n_0_0) {};
+\node[circle, draw, minimum size=0.5cm, below=0.75cm of input] (n_0_0) {$x_0$};
 \foreach \n in {1,...,3}{
-    \node[circle, draw, minimum size=0.5cm, below=0.5cm of n_0_\fpeval{\n - 1}] (n_0_\n) {};
+\node[circle, draw, minimum size=0.5cm, below=0.5cm of n_0_\fpeval{\n - 1}] (n_0_\n) {$x_\n$};
 }
 
 % Hidden
@@ -219,7 +219,7 @@ La perte en elle-même n'est intéressante que pour suivre l'évolution de la qu
 
 \subsection{Backpropagation}
 
-Ensuite, nous allons pouvoir utiliser la règle de la chaîne pour faire la backpropagation et calculer la dérivée de la perte par rapport aux différents paramètres du modèle. Pour commencer, il va falloir calculer la dérivée de la perte par rapport aux valeurs Z. Pour un neurone $n$ dont la valeur de sortie équivaut à $y_n$, la dérivée de la perte par rapport à la valeur Z est la suivante si la fonction d'activation est $tanh$ :
+Ensuite, nous allons pouvoir utiliser la règle de la chaîne pour faire la backpropagation et calculer la dérivée de la perte par rapport aux différents paramètres du modèle. Pour commencer, il va falloir calculer la dérivée de la perte par rapport aux valeurs $z$. Pour un neurone $n$ dont la valeur de sortie équivaut à $y_n$, la dérivée de la perte par rapport à la valeur $z$ est la suivante si la fonction d'activation est $tanh$ :
 
 \[
 \frac{\partial L}{\partial z_n} = \frac{\partial L}{\partial y_n} \cdot \frac{\partial y_n}{\partial z_n} = \frac{\partial L}{\partial y_n} \cdot (1 - y_n^2)
@@ -238,7 +238,7 @@ et si la fonction d'activation est $ReLU$ :
 
 \medskip
 
-Ensuite, nous allons faire la dérivée à travers la valeur Z pour avoir la dérivée de la perte par rapport aux poids et aux biais. Pour un poids $w_{in}$ associé à une entrée $i_{in}$, la dérivée de la perte par rapport à ce poids est la suivante :
+Ensuite, nous allons faire la dérivée à travers la valeur $z$ pour avoir la dérivée de la perte par rapport aux poids et aux biais. Pour un poids $w_{in}$ associé à une entrée $i_{in}$, la dérivée de la perte par rapport à ce poids est la suivante :
 
 \[
 \frac{\partial L}{\partial w_{wn}} = \frac{\partial L}{\partial z_n} \cdot \frac{\partial z_n}{\partial w_{wn}} = \frac{\partial L}{\partial z_n} \cdot i_{in}
