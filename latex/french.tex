@@ -152,23 +152,23 @@ Nous pouvons schématiser un MLP ainsi :
 \coordinate[] (center);
 
 % Input
-\coordinate[left=2cm of center] (input);
-\node[circle, draw, minimum size=0.5cm, below=0.75cm of input] (n_0_0) {$x_0$};
+\coordinate[left=3cm of center] (input);
+\node[circle, draw, minimum size=1cm, below=1.1cm of input] (n_0_0) {$x_0$};
 \foreach \n in {1,...,3}{
-\node[circle, draw, minimum size=0.5cm, below=0.5cm of n_0_\fpeval{\n - 1}] (n_0_\n) {$x_\n$};
+\node[circle, draw, minimum size=1cm, below=0.5cm of n_0_\fpeval{\n - 1}] (n_0_\n) {$x_\n$};
 }
 
 % Hidden
-\node[circle, draw, minimum size=0.5cm] (n_1_0) {};
+\node[circle, draw, minimum size=1cm] (n_1_0) {$h_0$};
 \foreach \n in {1,...,5}{
-    \node[circle, draw, minimum size=0.5cm, below=0.5cm of n_1_\fpeval{\n - 1}] (n_1_\n) {};
+\node[circle, draw, minimum size=1cm, below=0.5cm of n_1_\fpeval{\n - 1}] (n_1_\n) {$h_\n$};
 }
 
 % Output
-\coordinate[right=2cm of center] (output);
-\node[circle, draw, minimum size=0.5cm, below=1.75cm of output] (n_2_0) {};
+\coordinate[right=3cm of center] (output);
+\node[circle, draw, minimum size=1cm, below=2.5cm of output] (n_2_0) {$y_0$};
 \foreach \n in {1,...,1}{
-    \node[circle, draw, minimum size=0.5cm, below=0.5cm of n_2_\fpeval{\n - 1}] (n_2_\n) {};
+    \node[circle, draw, minimum size=1cm, below=0.5cm of n_2_\fpeval{\n - 1}] (n_2_\n) {$y_\n$};
 }
 
 % Input to Hidden connections
@@ -211,7 +211,7 @@ L = \sum_{n=0}^{N-1} (y_n - l_n)^2
 
 \medskip
 
-La perte en elle-même n'est intéressante que pour suivre l'évolution de la qualité du modèle. Comme expliqué plus haut, ce qui va vraiment nous intéresser, c'est la dérivée de la perte par rapport aux différents paramètres du modèle. C'est ici qu'entre en jeu la backpropagation. Pour calculer la dérivée de la perte par rapport aux différents poids et biais, nous allons utiliser la règle de la chaîne (chain rule). Pour commencer la chaîne, nous allons devoir calculer la dérivée des pertes par rapport aux différentes sorties associées du modèle. Pour une sortie $y_n$ associée à une valeur attendue $l_n$, la dérivée de la perte totale $L$ par rapport à cette sortie est la suivante :
+Calculer la perte elle-même sert uniquement à suivre la qualité du modèle (plus la perte est basse, meilleures sont les prédictions du modèle). Comme expliqué plus haut, ce qui va vraiment nous intéresser, c'est la dérivée de la perte par rapport aux différents paramètres du modèle. C'est ici qu'entre en jeu la backpropagation. Pour calculer la dérivée de la perte par rapport aux différents poids et biais, nous allons utiliser la règle de la chaîne (chain rule). Pour commencer la chaîne, nous allons devoir calculer la dérivée des pertes par rapport aux différentes sorties associées du modèle. Pour une sortie $y_n$ associée à une valeur attendue $l_n$, la dérivée de la perte totale $L$ par rapport à cette sortie est la suivante :
 
 \[
 \frac{\partial L}{\partial y_n} = 2 \cdot (y_n - l_n)
@@ -238,10 +238,10 @@ et si la fonction d'activation est $ReLU$ :
 
 \medskip
 
-Ensuite, nous allons faire la dérivée à travers la valeur $z$ pour avoir la dérivée de la perte par rapport aux poids et aux biais. Pour un poids $w_{in}$ associé à une entrée $i_{in}$, la dérivée de la perte par rapport à ce poids est la suivante :
+Ensuite, nous allons faire la dérivée à travers la valeur $z$ pour avoir la dérivée de la perte par rapport aux poids et aux biais. Pour un poids $w_{wn}$ associé à une entrée $x_{in}$, la dérivée de la perte par rapport à ce poids est la suivante :
 
 \[
-\frac{\partial L}{\partial w_{wn}} = \frac{\partial L}{\partial z_n} \cdot \frac{\partial z_n}{\partial w_{wn}} = \frac{\partial L}{\partial z_n} \cdot i_{in}
+\frac{\partial L}{\partial w_{wn}} = \frac{\partial L}{\partial z_n} \cdot \frac{\partial z_n}{\partial w_{wn}} = \frac{\partial L}{\partial z_n} \cdot x_{in}
 \]
 
 Et pour un biais $b_n$ associé à un neurone $n$, la dérivée de la perte par rapport à ce biais est la suivante :
@@ -252,7 +252,7 @@ Et pour un biais $b_n$ associé à un neurone $n$, la dérivée de la perte par 
 
 \medskip
 
-Notez également la présence des valeurs y qui correspondent aux sorties des neurones. Pour un neurone dans la couche finale du modèle, nous avons déjà montré comment cette dérivée se calcule. Pour un neurone dans une autre couche, il va falloir faire la somme pondérée des dérivées des neurones de la couche suivante. Pour un neurone $n$ de la couche $c$ et $M$ neurones dans la couche $c+1$, la dérivée de la perte par rapport à la valeur de sortie de ce neurone est la suivante :
+Pour un neurone dans la couche finale du modèle, nous avons déjà montré comment cette dérivée se calcule. Pour un neurone dans une autre couche, il va falloir faire la somme pondérée des dérivées des neurones de la couche suivante. Pour un neurone $n$ de la couche $c$ et $M$ neurones dans la couche $c+1$, la dérivée de la perte par rapport à la valeur de sortie de ce neurone est la suivante :
 
 \[
 \frac{\partial L}{\partial y_{c,n}} = \sum_{m=0}^{M-1} \frac{\partial L}{\partial z_{c+1,m}} \cdot w_{c+1,m,n}
@@ -283,7 +283,7 @@ y_{i,j} = \sum_{ii=0}^{sf-1} \sum_{ji=0}^{sf-1} x_{i+ii,j+ji} \cdot f_{ii,ji}
 Dans une couche de convolution, il y a plusieurs filtres qui peuvent être utilisés. Chaque filtre va produire une sortie différente, chaque sortie s'appelant un canal (channel). Si nous avons plusieurs canaux de sortie, vous noterez qu'il faudra également accepter plusieurs canaux d'entrée. Si nous avons $nc$ canaux d'entrée avec $nf$ filtres (donc également $nf$ canaux de sortie), nous devons utiliser un nombre $nf$ de filtres et une entrée représentés par des tenseurs d'ordre 3. Ainsi, nous avons $nf$ filtres de dimensions $nc \times sf \times sf$ et une entrée de dimensions $nc \times si \times si$. La sortie sera donc représentée par un tenseur de dimensions $nf \times (si - sf + 1) \times (si - sf + 1)$. Nous pouvons également représenter tous les filtres sous forme d'un tenseur d'ordre 4 de dimensions $nf \times nc \times sf \times sf$. Pour calculer la valeur d'une cellule de sortie $y_{ci,i,j}$ avec notre tenseur d'ordre 4 de filtres $f$ et notre tenseur d'ordre 3 pour nos entrées $x$, voici la formule à utiliser : 
 
 \[
-y_{ci,i,j} = \sum_{ici=0}^{ci-1} \sum_{ii=0}^{sf-1} \sum_{ji=0}^{sf-1} x_{ici,i+ii,j+ji} \cdot f_{ci,ici,i,j}
+y_{ci,i,j} = \sum_{ici=0}^{nc-1} \sum_{ii=0}^{sf-1} \sum_{ji=0}^{sf-1} x_{ici,i+ii,j+ji} \cdot f_{ci,ici,i,j}
 \]
 
 Nous pouvons écrire la dérivée de la perte par rapport au poids d'un filtre $f_{ci,ici,fi,fj}$ de la manière suivante, avec $so$ la taille de la sortie :
