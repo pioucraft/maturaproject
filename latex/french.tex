@@ -17,16 +17,25 @@ Implémentation d'un CNN en C et CUDA pour la reconnaissance de chiffres manuscr
 \large{Travail de maturité}
 }
 
-\author{Nathan Gasser}
-\date{\today}
+\author{
+Nathan Gasser, 3M4 \\
+Répondant TM : Grégoire Favre
+}
+
+\date{
+\today \\
+Troisième année de maturité
+}
 
 \begin{document}
 
 \maketitle
 
+\newpage
+
 \begin{abstract}
 
-Les réseaux de neurones à convolution (CNN) sont très utilisés de nos jours pour la reconnaissance d'images. Nous allons en implémenter un en utilisant les langages C et CUDA. Il aura pour but de lire un chiffre manuscrit et sera entraîné sur le dataset MNIST, en utilisant une carte graphique NVIDIA.
+Les réseaux de neurones convolutifs (CNN) sont très utilisés de nos jours pour la reconnaissance d'images. Nous allons en implémenter un en utilisant les langages C et CUDA. Il aura pour but de lire un chiffre manuscrit et sera entraîné sur le dataset MNIST, en utilisant une carte graphique NVIDIA. A la fin, nous obtiendrons un modèle capable de lire un chiffre manuscrit avec une précision de plus de 99.3%.
 
 \end{abstract}
 
@@ -362,7 +371,6 @@ Pour l'entrainement du modèle, nous allons utiliser le dataset MNIST. Il contie
 \medskip
 
 Avec le code final que vous pouvez trouver sur mon repository GitHub, j'ai pu entrainer le modèle sur le dataset MNIST pendant presque 2 heures sur mon ordinateur avec une carte graphique NVIDIA GeForce GTX 1660 super. Le code a 100 epochs, c'est-à-dire qu'il va faire entrainer le modèle 100 fois sur chacune des 60'000 images en tout. Au pic de performance du modèle, il a pu atteindre une précision de 98.44\% sur le dataset de test. Cela veut dire que sur les 10'000 images de test, le modèle a pu correctement reconnaitre 9'844 images.
-% Add human performance comparison here w/ source in latex approved format or whatever
 
 \subsection{Moteur d'inférence en C}
 
@@ -371,5 +379,8 @@ Le désavantage du CUDA est qu'il ne fonctionne que sur un ordinateur muni d'une
 \subsection{Interface utilisateur}
 
 J'ai également écrit une interface utilisateur en HTML et JavaScript qui permet de dessiner un chiffre manuscrit sur un canvas et de l'envoyer au modèle pour qu'il le reconnaisse. Elle est également disponible sur mon repository GitHub.
+
+\section{Conclusion}
+En conclusion, j'ai pu implémenter avec succès ce réseau de neuronnes convolutif. Il m'a permis d'approfondir mes connaissances dans le domaine du machine learning après avoir fait mes premiers pas un an auparavant en implémentant un simple MLP sur la même tâche de reconnaissance d'image. Je pense d'ailleurs que j'aurais implémenté cette architecture dans mon temps libre même s'il ne s'agissait pas de mon TM, car j'ai même plus récemment implémenté l'architecture du Transformers, qui est l'architecture phare derrière les modèles de language tels que ChatGPT ou Claude.
 
 \end{document}
