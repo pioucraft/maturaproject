@@ -35,7 +35,7 @@ Troisième année de maturité
 
 \begin{abstract}
 
-Les réseaux de neurones convolutifs (CNN) sont très utilisés de nos jours pour la reconnaissance d'images. Nous allons en implémenter un en utilisant les langages C et CUDA. Il aura pour but de lire un chiffre manuscrit et sera entraîné sur le dataset MNIST, en utilisant une carte graphique NVIDIA. A la fin, nous obtiendrons un modèle capable de lire un chiffre manuscrit avec une précision de plus de 99.3%.
+Les réseaux de neurones convolutifs (CNN) sont très utilisés de nos jours pour la reconnaissance d'images. Nous allons en implémenter un en utilisant les langages C et CUDA. Il aura pour but de lire un chiffre manuscrit et sera entraîné sur le dataset MNIST, en utilisant une carte graphique NVIDIA. A la fin, nous obtiendrons un modèle capable de lire un chiffre manuscrit avec une précision atteignant 99.44%.
 
 \end{abstract}
 
@@ -50,7 +50,7 @@ Pour un humain, être capable de lire un chiffre manuscrit paraît être une tâ
 
 \section{Avertissement}
 
-Dans ce texte, nous allons utiliser une indexation à partir de 0 et non pas à partir de 1. Dans le contexte des mathématiques, il est plus courant de commencer à partir de 1, mais dans le contexte de l'informatique, 0 est plus souvent utilisé comme point de départ. Ainsi, si nous avons par exemple un vecteur de 3 scalaires ainsi : $v = \begin{bmatrix} 6 \\ 4 \\ 8 \end{bmatrix}$, la valeur $v_1$ est $4$ et la valeur de $v_0$ est $6$
+Dans ce texte, nous allons utiliser une indexation à partir de 0 et non pas à partir de 1. Dans le contexte des mathématiques, il est plus courant de commencer à partir de 1, mais dans le contexte de l'informatique, 0 est plus souvent utilisé comme point de départ. Ainsi, si nous avons par exemple un vecteur de 3 scalaires ainsi : $v = \begin{bmatrix} 6 \\ 4 \\ 8 \end{bmatrix}$, la valeur $v_1$ est $4$ et la valeur de $v_0$ est $6$.
 
 \section{Modèle de reconnaissance d'images}
 
@@ -58,11 +58,11 @@ Pour faire un modèle qui est capable de lire un chiffre manuscrit, il faut d'ab
 
 \medskip
 
-Chaque chiffre manuscrit est une image de $28 \times 28$ pixels avec à chaque fois $256$ différentes intensités de noir. C'est-à-dire que si la valeur du pixel est de $0$, il correspond à un pixel complètement blanc et si la valeur du pixel est de $255$, il correspond à un pixel complètement noir. Les valeurs entre deux correspondent à différentes intensités de gris. Notez que la valeur maximale d'un pixel correspond à $255$ et non $256$, tout simplement parce qu'il y a $256$ valeurs différentes et que la valeur $0$ est incluse, ce qui nous laisse $255$ valeurs positives. Nous allons ensuite diviser tous les pixels par $255$, ce qui nous permet d'avoir des valeurs entre $0.0$ et $1.0$ que nous allons pouvoir donner au modèle. Nous avons donc $28 \times 28 = 784$ pixels dans une image. Notre modèle aura donc $28 \times 28 = 784$ entrées avec des valeurs comprises entre $0.0$ et $1.0$ à chaque fois.
+Chaque chiffre manuscrit est une image de $28 \times 28$ pixels avec à chaque fois $256$ différentes intensités de gris (de complètement blanc à complètement noir). C'est-à-dire que si la valeur du pixel est de $0$, il correspond à un pixel complètement blanc et si la valeur du pixel est de $255$, il correspond à un pixel complètement noir. Les valeurs entre deux correspondent à différentes intensités de gris. Notez que la valeur maximale d'un pixel correspond à $255$ et non $256$, tout simplement parce qu'il y a $256$ valeurs différentes et que la valeur $0$ est incluse, ce qui nous laisse $255$ valeurs positives. Nous allons ensuite diviser tous les pixels par $255$, ce qui nous permet d'avoir des valeurs entre $0.0$ et $1.0$ que nous allons pouvoir donner au modèle. Nous avons donc $28 \times 28 = 784$ pixels dans une image. Notre modèle aura donc $28 \times 28 = 784$ entrées avec des valeurs comprises entre $0.0$ et $1.0$ à chaque fois.
 
 \medskip
 
-Nous voulons obtenir en sortie 10 probabilités, une pour chacun des chiffres possibles (de $0$ à $9$). C'est à dire que chaque chiffre sera associé à une probabilité que ce soit ce chiffre là qui est écrit sur l'image fournie au modèle. Il y aura donc 10 neurones en sortie, chacun des différents chiffres sera assigné à un neurone et les valeurs de sortie des neurones se situeront entre $-1.0$ et $1.0$. Une valeur de $-1.0$ correspond à une certitude qu'il ne s'agit pas du chiffre associé à l'image et $1.0$ correspond à une certitude qu'il s'agit du bon chiffre.
+Nous voulons obtenir en sortie 10 probabilités, une pour chacun des chiffres possibles (de $0$ à $9$). C'est-à-dire que chaque chiffre sera associé à une probabilité que ce soit ce chiffre là qui est écrit sur l'image fournie au modèle. Il y aura donc 10 neurones en sortie, chacun des différents chiffres sera assigné à un neurone et les valeurs de sortie des neurones se situeront entre $-1.0$ et $1.0$. Une valeur de $-1.0$ correspond à une certitude qu'il ne s'agit pas du chiffre associé à l'image et $1.0$ correspond à une certitude qu'il s'agit du bon chiffre.
 
 \section{MLP}
 
@@ -72,11 +72,11 @@ L'architecture la plus simple qu'on peut utiliser est le perceptron à plusieurs
 
 Le perceptron est la brique de base de l'intelligence artificielle. Il accepte un nombre fixe d'entrées (inputs) ($N$) et nous donne un seul nombre en sortie (output). Le perceptron peut en lui-même déjà être utilisé pour créer des systèmes de classification simples.
 
-Chaque entrée s'appelle $x_n$ et est représentée sous forme d'un nombre rationel. Pour chaque entrée, il y a un poids (weight) associé ($w_n$). En plus des entrées et des poids, il y a un biais (bias) ($b$) associé à chaque neurone. Par convention, ces poids et biais seront appelés paramètres. Ces paramètres sont initialisés de manière aléatoire. Pour calculer la valeur de sortie du perceptron ($y$), il faut également choisir une fonction d'activation ($f$). Il peut s'agir théoriquement d'à peu près n'importe quelle fonction mathématique, mais dans le cadre de ce TM, nous allons utiliser deux fonctions principalement : ReLU et tanh
+Chaque entrée s'appelle $x_n$ et est représentée sous forme d'un nombre rationnel. Pour chaque entrée, il y a un poids (weight) associé ($w_n$). En plus des entrées et des poids, il y a un biais (bias) ($b$) associé à chaque neurone. Par convention, ces poids et biais seront appelés paramètres. Ces paramètres sont initialisés de manière aléatoire. Pour calculer la valeur de sortie du perceptron ($y$), il faut également choisir une fonction d'activation ($f$). Il peut s'agir théoriquement d'à peu près n'importe quelle fonction mathématique, mais dans le cadre de ce TM, nous allons utiliser deux fonctions principalement : ReLU et tanh.
 
 \medskip
 
-Pour calculer la valeur de sortie de notre perceptron, il faudra d'abord calculer la valeur $z$ en faisant une somme pondérée des entrées et du biais. Ensuite, nous pourrons appliquer la fonction d'activation à la valeur . La formule est la suivante :
+Pour calculer la valeur de sortie de notre perceptron, il faudra d'abord calculer la valeur $z$ en faisant une somme pondérée des entrées et du biais. Ensuite, nous pourrons appliquer la fonction d'activation à la valeur. La formule est la suivante :
 
 \[
 y = f(z) = f\left(\sum_{n=0}^{N-1} w_n x_n + b\right)
@@ -108,7 +108,7 @@ y = f(z) = f\left(\sum_{n=0}^{N-1} w_n x_n + b\right)
 
 \subsection{Fonctions d'activation}
 
-La fonction d'activation permet d'ajouter de la non linéarité au modèle. Cela permet au modèle d'apprendre des motifs bien plus complexes. Sans fonction d'activation, le modèle ne pourrait apprendre que des motifs linéaires, ce qui est beaucoup trop limité pour des tâches de reconnaissance d'images.
+La fonction d'activation permet d'ajouter de la non linéarité au modèle. Cela permet au modèle d'apprendre des motifs bien plus complexes. Sans fonction d'activation, le modèle ne pourrait apprendre que des motifs linéaires, ce qui est beaucoup trop limité pour des tâches de reconnaissance d'images. C'est à dire que sans fonction d'activation, tout modèle aussi complexe qu'il soit pourrait être représenté par un seul perceptron. Il est donc très important d'utiliser une fonction d'activation pour que le modèle puisse apprendre des motifs complexes.
 
 \subsubsection{La fonction $ReLU$}
 La fonction $ReLU$ est la suivante :
@@ -202,7 +202,7 @@ Nous pouvons schématiser un MLP ainsi :
 
 \section{Backpropagation}
 
-Pour que notre modèle puisse correctement prédire les sorties correctes, il va falloir l'entraîner. Sans entrainement, les prédictions seront tout simplement aléatoires. Pour entraîner notre modèle, nous allons utiliser la backpropagation qui est considérée comme l'algorithme le plus important dans le domaine du deep learning. Le but sera de faire la dérivée de la perte par rapport aux différents paramètres du modèle pour savoir comment modifier ces derniers tel que la perte diminue et que le modèle fasse donc de meilleures prédictions.
+Pour que notre modèle puisse correctement prédire les sorties correctes, il va falloir l'entraîner. Sans entrainement, les prédictions seront tout simplement aléatoires. Pour entraîner notre modèle, nous allons utiliser la backpropagation qui est considérée comme l'algorithme le plus important dans le domaine du deep learning. Le but sera de faire la dérivée de la perte par rapport aux différents paramètres du modèle pour savoir comment modifier ces derniers pour la perte diminue et que le modèle fasse donc de meilleures prédictions.
 
 \subsection{Perte}
 
@@ -212,10 +212,10 @@ Avec la backpropagation, notre but sera de minimiser la perte (loss) ($L$) du mo
 L_n = (y_n - l_n)^2
 \]
 
-Pour calculer la perte totale d'un modèle avec $N$ sorties, il suffit d'additionner toutes les pertes de chaque sortie :
+Pour calculer la perte moyenne d'un modèle avec $N$ sorties, il suffit d'additionner toutes les pertes de chaque sortie et diviser le tout par $N$:
 
 \[
-L = \sum_{n=0}^{N-1} (y_n - l_n)^2
+L = \frac{1}{N} \sum_{n=0}^{N-1} (y_n - l_n)^2
 \]
 
 \medskip
@@ -261,7 +261,7 @@ Et pour un biais $b_n$ associé à un neurone $n$, la dérivée de la perte par 
 
 \medskip
 
-Pour un neurone dans la couche finale du modèle, nous avons déjà montré comment cette dérivée se calcule. Pour un neurone dans une autre couche, il va falloir faire la somme pondérée des dérivées des neurones de la couche suivante. Pour un neurone $n$ de la couche $c$ et $M$ neurones dans la couche $c+1$, la dérivée de la perte par rapport à la valeur de sortie de ce neurone est la suivante :
+Pour un neurone dans la couche finale du modèle, nous avons déjà montré comment cette dérivée se calcule. Pour un neurone dans une autre couche, il va falloir faire la somme pondérée des dérivées des neurones de la couche suivante. Pour un neurone $n$ de la couche $c$ et $M$ neurones dans la couche $c+1$, la dérivée de la perte de cette sortie spécifique par rapport à la valeur de sortie de ce neurone est la suivante :
 
 \[
 \frac{\partial L}{\partial y_{c,n}} = \sum_{m=0}^{M-1} \frac{\partial L}{\partial z_{c+1,m}} \cdot w_{c+1,m,n}
@@ -279,7 +279,7 @@ pf_n = pi_n - \alpha \cdot \frac{\partial L}{\partial pi_n}
 
 \section{CNN}
 
-En utilisant l'architecture MLP, nous avons pu créer un modèle capable de reconnaitre des chiffres manuscrits. Cependant, il est possible de créer un modèle plus efficace en utilisant l'architecture CNN.
+En utilisant l'architecture MLP, nous avons pu créer un modèle capable de reconnaitre des chiffres manuscrits. Cependant, il est possible de créer un modèle plus efficace en utilisant l'architecture CNN. Le CNN va utiliser des filtres pour extraire des caractéristiques de l'image. Ces filtres vont être réutilisés pour plusieurs pixels de l'image, ce qui permet de réduire drastiquement le nombre de paramètres, permettant de réduire les ressources nécessaires à l'entrainement et l'inférence.
 
 \subsection{Convolution}
 
@@ -292,7 +292,7 @@ y_{i,j} = \sum_{ii=0}^{sf-1} \sum_{ji=0}^{sf-1} x_{i+ii,j+ji} \cdot f_{ii,ji}
 Dans une couche de convolution, il y a plusieurs filtres qui peuvent être utilisés. Chaque filtre va produire une sortie différente, chaque sortie s'appelant un canal (channel). Si nous avons plusieurs canaux de sortie, vous noterez qu'il faudra également accepter plusieurs canaux d'entrée. Si nous avons $nc$ canaux d'entrée avec $nf$ filtres (donc également $nf$ canaux de sortie), nous devons utiliser un nombre $nf$ de filtres et une entrée représentés par des tenseurs d'ordre 3. Ainsi, nous avons $nf$ filtres de dimensions $nc \times sf \times sf$ et une entrée de dimensions $nc \times si \times si$. La sortie sera donc représentée par un tenseur de dimensions $nf \times (si - sf + 1) \times (si - sf + 1)$. Nous pouvons également représenter tous les filtres sous forme d'un tenseur d'ordre 4 de dimensions $nf \times nc \times sf \times sf$. Pour calculer la valeur d'une cellule de sortie $y_{ci,i,j}$ avec notre tenseur d'ordre 4 de filtres $f$ et notre tenseur d'ordre 3 pour nos entrées $x$, voici la formule à utiliser : 
 
 \[
-y_{ci,i,j} = \sum_{ici=0}^{nc-1} \sum_{ii=0}^{sf-1} \sum_{ji=0}^{sf-1} x_{ici,i+ii,j+ji} \cdot f_{ci,ici,i,j}
+y_{ci,i,j} = \sum_{ici=0}^{nc-1} \sum_{ii=0}^{sf-1} \sum_{ji=0}^{sf-1} x_{ici,i+ii,j+ji} \cdot f_{ci,ici,ii,ji}
 \]
 
 Nous pouvons écrire la dérivée de la perte par rapport au poids d'un filtre $f_{ci,ici,fi,fj}$ de la manière suivante, avec $so$ la taille de la sortie :
@@ -370,7 +370,7 @@ Pour l'entrainement du modèle, nous allons utiliser le dataset MNIST. Il contie
 
 \medskip
 
-Avec le code final que vous pouvez trouver sur mon repository GitHub, j'ai pu entrainer le modèle sur le dataset MNIST pendant presque 2 heures sur mon ordinateur avec une carte graphique NVIDIA GeForce GTX 1660 super. Le code a 100 epochs, c'est-à-dire qu'il va faire entrainer le modèle 100 fois sur chacune des 60'000 images en tout. Au pic de performance du modèle, il a pu atteindre une précision de 98.44\% sur le dataset de test. Cela veut dire que sur les 10'000 images de test, le modèle a pu correctement reconnaitre 9'844 images.
+Avec le code final que vous pouvez trouver sur mon repository GitHub, j'ai pu entrainer le modèle sur le dataset MNIST pendant presque 2 heures sur mon ordinateur avec une carte graphique NVIDIA GeForce GTX 1660 super. Le code a 100 epochs, c'est-à-dire qu'il va faire entrainer le modèle 100 fois sur chacune des 60'000 images en tout. Au pic de performance du modèle, il a pu atteindre une précision de 99.44\% sur le dataset de test. Cela veut dire que sur les 10'000 images de test, le modèle a pu correctement reconnaitre 9'944 images et s'est trompé sur uniquement 56 images.
 
 \subsection{Moteur d'inférence en C}
 
@@ -381,6 +381,6 @@ Le désavantage du CUDA est qu'il ne fonctionne que sur un ordinateur muni d'une
 J'ai également écrit une interface utilisateur en HTML et JavaScript qui permet de dessiner un chiffre manuscrit sur un canvas et de l'envoyer au modèle pour qu'il le reconnaisse. Elle est également disponible sur mon repository GitHub.
 
 \section{Conclusion}
-En conclusion, j'ai pu implémenter avec succès ce réseau de neuronnes convolutif. Il m'a permis d'approfondir mes connaissances dans le domaine du machine learning après avoir fait mes premiers pas un an auparavant en implémentant un simple MLP sur la même tâche de reconnaissance d'image. Je pense d'ailleurs que j'aurais implémenté cette architecture dans mon temps libre même s'il ne s'agissait pas de mon TM, car j'ai même plus récemment implémenté l'architecture du Transformers, qui est l'architecture phare derrière les modèles de language tels que ChatGPT ou Claude.
+En conclusion, j'ai pu implémenter avec succès ce réseau de neurones convolutif. Il m'a permis d'approfondir mes connaissances dans le domaine du machine learning après avoir fait mes premiers pas un an auparavant en implémentant un simple MLP sur la même tâche de reconnaissance d'image. Je pense d'ailleurs que j'aurais implémenté cette architecture dans mon temps libre même s'il ne s'agissait pas de mon TM, car j'ai même plus récemment implémenté l'architecture de Transformer, qui est l'architecture phare derrière les modèles de langage tels que ChatGPT ou Claude.
 
 \end{document}
