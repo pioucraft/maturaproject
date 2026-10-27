@@ -304,8 +304,10 @@ Nous pouvons écrire la dérivée de la perte par rapport au poids d'un filtre $
 Et la dérivée de la perte par rapport à une entrée $x_{ici,i,j}$ de la manière suivante :
 
 \[
-\frac{\partial L}{\partial x_{ici,i,j}} = \sum_{ci=0}^{nc-1} \sum_{fi=0}^{sf-1} \sum_{fj=0}^{sf-1} \frac{\partial L}{\partial y_{ci,i-fi,j-fj}} \cdot f_{ci,ici,fi,fj}
+\frac{\partial L}{\partial x_{ici,i,j}} = \sum_{ci=0}^{nf-1} \sum_{fi=0}^{sf-1} \sum_{fj=0}^{sf-1} \frac{\partial L}{\partial y_{ci,i-fi,j-fj}} \cdot f_{ci,ici,fi,fj}
 \]
+
+Notez que près des bords de l'entrée, certains termes de la somme font référence à des cellules de sortie qui n'existent pas (lorsque $i - fi$ ou $j - fj$ sortent de l'intervalle $[0, so - 1]$) ; ces termes sont simplement omis.
 
 \subsection{Pooling}
 
