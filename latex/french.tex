@@ -35,7 +35,7 @@ Troisième année de maturité
 
 \begin{abstract}
 
-Les réseaux de neurones convolutifs (CNN) sont très utilisés de nos jours pour la reconnaissance d'images. Nous allons en implémenter un en utilisant les langages C et CUDA. Il aura pour but de lire un chiffre manuscrit et sera entraîné sur le dataset MNIST, en utilisant une carte graphique NVIDIA. A la fin, nous obtiendrons un modèle capable de lire un chiffre manuscrit avec une précision atteignant 99.44%.
+Les réseaux de neurones convolutifs (CNN) sont très utilisés de nos jours pour la reconnaissance d'images. Nous allons en implémenter un en utilisant les langages C et CUDA. Il aura pour but de lire un chiffre manuscrit et sera entrainé sur le dataset MNIST, en utilisant une carte graphique NVIDIA. À la fin, nous obtiendrons un modèle capable de lire un chiffre manuscrit avec une précision atteignant 99.44\%.
 
 \end{abstract}
 
@@ -62,7 +62,7 @@ Chaque chiffre manuscrit est une image de $28 \times 28$ pixels avec à chaque f
 
 \medskip
 
-Nous voulons obtenir en sortie 10 probabilités, une pour chacun des chiffres possibles (de $0$ à $9$). C'est-à-dire que chaque chiffre sera associé à une probabilité que ce soit ce chiffre là qui est écrit sur l'image fournie au modèle. Il y aura donc 10 neurones en sortie, chacun des différents chiffres sera assigné à un neurone et les valeurs de sortie des neurones se situeront entre $-1.0$ et $1.0$. Une valeur de $-1.0$ correspond à une certitude qu'il ne s'agit pas du chiffre associé à l'image et $1.0$ correspond à une certitude qu'il s'agit du bon chiffre.
+Nous voulons obtenir en sortie 10 probabilités, une pour chacun des chiffres possibles (de $0$ à $9$). C'est-à-dire que chaque chiffre sera associé à une probabilité que ce soit ce chiffre-là qui est écrit sur l'image fournie au modèle. Il y aura donc 10 neurones en sortie, chacun des différents chiffres sera assigné à un neurone et les valeurs de sortie des neurones se situeront entre $-1.0$ et $1.0$. Une valeur de $-1.0$ correspond à une certitude qu'il ne s'agit pas du chiffre associé à l'image et $1.0$ correspond à une certitude qu'il s'agit du bon chiffre.
 
 \section{MLP}
 
@@ -108,7 +108,7 @@ y = f(z) = f\left(\sum_{n=0}^{N-1} w_n x_n + b\right)
 
 \subsection{Fonctions d'activation}
 
-La fonction d'activation permet d'ajouter de la non linéarité au modèle. Cela permet au modèle d'apprendre des motifs bien plus complexes. Sans fonction d'activation, le modèle ne pourrait apprendre que des motifs linéaires, ce qui est beaucoup trop limité pour des tâches de reconnaissance d'images. C'est à dire que sans fonction d'activation, tout modèle aussi complexe qu'il soit pourrait être représenté par un seul perceptron. Il est donc très important d'utiliser une fonction d'activation pour que le modèle puisse apprendre des motifs complexes.
+La fonction d'activation permet d'ajouter de la non-linéarité au modèle. Cela permet au modèle d'apprendre des motifs bien plus complexes. Sans fonction d'activation, le modèle ne pourrait apprendre que des motifs linéaires, ce qui est beaucoup trop limité pour des tâches de reconnaissance d'images. C'est-à-dire que sans fonction d'activation, tout modèle aussi complexe qu'il soit pourrait être représenté par un seul perceptron. Il est donc très important d'utiliser une fonction d'activation pour que le modèle puisse apprendre des motifs complexes.
 
 \subsubsection{La fonction $ReLU$}
 La fonction $ReLU$ est la suivante :
@@ -124,7 +124,7 @@ x \ \text{si} \ x \geq 0
 Elle paraît très simple, mais grâce à la non-linéarité qu'elle apporte, elle permet au modèle d'apprendre des motifs très complexes.
 
 \subsubsection{La fonction $tanh$}
-La fonction $tanh$ (tangente hyperbolique) est utilisée pour confiner les valeurs de sorties entre la valeur $-1.0$ et $1.0$. Dans le contexte de la reconnaissance d'images, elle permet de représenter le niveau de certitude de notre modèle par rapport à différentes prédictions. La fonction softmax est également souvent utilisée mais par simplicité j'ai décidé d'utiliser tanh pour ce TM.
+La fonction $tanh$ (tangente hyperbolique) est utilisée pour confiner les valeurs de sortie entre la valeur $-1.0$ et $1.0$. Dans le contexte de la reconnaissance d'images, elle permet de représenter le niveau de certitude de notre modèle par rapport à différentes prédictions. La fonction softmax est également souvent utilisée mais par simplicité j'ai décidé d'utiliser tanh pour ce TM.
 
 \begin{tikzpicture}
     \begin{axis}[
@@ -202,17 +202,17 @@ Nous pouvons schématiser un MLP ainsi :
 
 \section{Backpropagation}
 
-Pour que notre modèle puisse correctement prédire les sorties correctes, il va falloir l'entraîner. Sans entrainement, les prédictions seront tout simplement aléatoires. Pour entraîner notre modèle, nous allons utiliser la backpropagation qui est considérée comme l'algorithme le plus important dans le domaine du deep learning. Le but sera de faire la dérivée de la perte par rapport aux différents paramètres du modèle pour savoir comment modifier ces derniers pour la perte diminue et que le modèle fasse donc de meilleures prédictions.
+Pour que notre modèle puisse correctement prédire les sorties correctes, il va falloir l'entraîner. Sans entrainement, les prédictions seront tout simplement aléatoires. Pour entraîner notre modèle, nous allons utiliser la backpropagation qui est considérée comme l'algorithme le plus important dans le domaine du deep learning. Le but sera de faire la dérivée de la perte par rapport aux différents paramètres du modèle pour savoir comment modifier ces derniers pour que la perte diminue et que le modèle fasse donc de meilleures prédictions.
 
 \subsection{Perte}
 
-Avec la backpropagation, notre but sera de minimiser la perte (loss) ($L$) du modèle. Si avec une certaine entrée, on obtient pour la sortie numéro $n$ une valeur de $y_n$, alors que nous voulions obtenir une valeur de $l_n$, nous pouvons calculer la perte d'une sortie en soustrayant la valeur que nous attendions à la valeur que nous avons obtenue et élever le tout au carré. Cet algorithme s'appelle l'erreur quadratique (Mean Squared Error ou MSE en anglais). Nous pouvons ainsi calculer la perte d'une sortie spécifique $L_n$ de la manière suivante :
+Avec la backpropagation, notre but sera de minimiser la perte (loss) ($L$) du modèle. Si avec une certaine entrée, on obtient pour la sortie numéro $n$ une valeur de $y_n$, alors que nous voulions obtenir une valeur de $l_n$, nous pouvons calculer la perte d'une sortie en soustrayant la valeur que nous attendions à la valeur que nous avons obtenue et en élevant le tout au carré. Cet algorithme s'appelle l'erreur quadratique (Mean Squared Error ou MSE en anglais). Nous pouvons ainsi calculer la perte d'une sortie spécifique $L_n$ de la manière suivante :
 
 \[
 L_n = (y_n - l_n)^2
 \]
 
-Pour calculer la perte moyenne d'un modèle avec $N$ sorties, il suffit d'additionner toutes les pertes de chaque sortie et diviser le tout par $N$:
+Pour calculer la perte moyenne d'un modèle avec $N$ sorties, il suffit d'additionner toutes les pertes de chaque sortie et de diviser le tout par $N$:
 
 \[
 L = \frac{1}{N} \sum_{n=0}^{N-1} (y_n - l_n)^2
@@ -267,11 +267,11 @@ Pour un neurone dans la couche finale du modèle, nous avons déjà montré comm
 \frac{\partial L}{\partial y_{c,n}} = \sum_{m=0}^{M-1} \frac{\partial L}{\partial z_{c+1,m}} \cdot w_{c+1,m,n}
 \]
 
-Les dérivées des neurones des couches précédant la couche de sortie nécessitent de connaître les dérivées des neurones de la couche qui suit ces dits neurones, il est donc nécessaire de faire la backpropagation en calculant d'abord les dérivées des neurones de la couche de sortie, puis celles de la couche précédente et ainsi de suite jusqu'à la couche initiale.
+Les dérivées des neurones des couches précédant la couche de sortie nécessitent de connaître les dérivées des neurones de la couche qui suit cesdits neurones, il est donc nécessaire de faire la backpropagation en calculant d'abord les dérivées des neurones de la couche de sortie, puis celles de la couche précédente et ainsi de suite jusqu'à la couche initiale.
 
 \subsubsection{SGD}
 
-Maintenant que nous avons les dérivées de la perte par rapport aux différents paramètres du modèle, nous allons devoir mettre à jour ces paramètres tel que la perte diminue. Pour ce faire, nous allons utiliser l'algorithme de descente de gradient stochastique (Stochastic Gradient Descent ou SGD en anglais). Cet algorithme est très simple à comprendre. Si nous connaissons la dérivée de la perte par rapport à un paramètre $pi_n$, nous savons que si nous changeons la valeur de ce paramètre dans le sens opposé à la dérivée, la perte va diminuer. Étant donné que nous ne voulons pas changer la valeur de ce paramètre trop rapidement, car nous pourrions ainsi dépasser le minimum de la fonction de perte, nous allons multiplier la dérivée par un scalaire appelé le taux d'apprentissage (learning rate) ($\alpha$). Dans le cadre de ce TM, sa valeur est de 0.05. La formule pour déterminer le nouveau paramètre ($pf_n$) est la suivante :
+Maintenant que nous avons les dérivées de la perte par rapport aux différents paramètres du modèle, nous allons devoir mettre à jour ces paramètres de sorte que la perte diminue. Pour ce faire, nous allons utiliser l'algorithme de descente de gradient stochastique (Stochastic Gradient Descent ou SGD en anglais). Cet algorithme est très simple à comprendre. Si nous connaissons la dérivée de la perte par rapport à un paramètre $pi_n$, nous savons que si nous changeons la valeur de ce paramètre dans le sens opposé à la dérivée, la perte va diminuer. Étant donné que nous ne voulons pas changer la valeur de ce paramètre trop rapidement, car nous pourrions ainsi dépasser le minimum de la fonction de perte, nous allons multiplier la dérivée par un scalaire appelé le taux d'apprentissage (learning rate) ($\alpha$). Dans le cadre de ce TM, sa valeur est de 0.05. La formule pour déterminer le nouveau paramètre ($pf_n$) est la suivante :
 
 \[
 pf_n = pi_n - \alpha \cdot \frac{\partial L}{\partial pi_n}
@@ -279,11 +279,11 @@ pf_n = pi_n - \alpha \cdot \frac{\partial L}{\partial pi_n}
 
 \section{CNN}
 
-En utilisant l'architecture MLP, nous avons pu créer un modèle capable de reconnaitre des chiffres manuscrits. Cependant, il est possible de créer un modèle plus efficace en utilisant l'architecture CNN. Le CNN va utiliser des filtres pour extraire des caractéristiques de l'image. Ces filtres vont être réutilisés pour plusieurs pixels de l'image, ce qui permet de réduire drastiquement le nombre de paramètres, permettant de réduire les ressources nécessaires à l'entrainement et l'inférence.
+En utilisant l'architecture MLP, nous avons pu créer un modèle capable de reconnaitre des chiffres manuscrits. Cependant, il est possible de créer un modèle plus efficace en utilisant l'architecture CNN. Le CNN va utiliser des filtres pour extraire des caractéristiques de l'image. Ces filtres vont être réutilisés pour plusieurs pixels de l'image, ce qui permet de réduire drastiquement le nombre de paramètres, permettant de réduire les ressources nécessaires à l'entrainement et à l'inférence.
 
 \subsection{Convolution}
 
-La particularité principale d'un CNN est l'utilisation des couches de convolution. Une opération de convolution va appliquer un filtre (kernel ou filter en anglais) sur notre entrée. Le filtre et l'entrée sont tous deux représentés sous forme de matrices. Cela permet au modèle de comprendre des motifs en 2d dans l'image. Le filtre est une matrice bien plus petite que l'image d'entrée, de dimensions $sf \times sf$. Notez que les valeurs du filtre sont générées aléatoirement et font partie des paramètres du modèle à optimiser avec la backpropagation. La matrice d'entrée est de dimension $si \times si$. Dans le cadre du TM, la sortie sera représentée sous forme d'une matrice de dimensions $(si - sf + 1) \times (si - sf + 1)$. Pour calculer la valeur d'une cellule de sortie $y_{i,j}$ avec une matrice d'entrée $x$ et un filtre $f$, voici la formule à utiliser :
+La particularité principale d'un CNN est l'utilisation des couches de convolution. Une opération de convolution va appliquer un filtre (kernel ou filter en anglais) à notre entrée. Le filtre et l'entrée sont tous deux représentés sous forme de matrices. Cela permet au modèle de comprendre des motifs en 2D dans l'image. Le filtre est une matrice bien plus petite que l'image d'entrée, de dimensions $sf \times sf$. Notez que les valeurs du filtre sont générées aléatoirement et font partie des paramètres du modèle à optimiser avec la backpropagation. La matrice d'entrée est de dimension $si \times si$. Dans le cadre du TM, la sortie sera représentée sous forme d'une matrice de dimensions $(si - sf + 1) \times (si - sf + 1)$. Pour calculer la valeur d'une cellule de sortie $y_{i,j}$ avec une matrice d'entrée $x$ et un filtre $f$, voici la formule à utiliser :
 
 \[
 y_{i,j} = \sum_{ii=0}^{sf-1} \sum_{ji=0}^{sf-1} x_{i+ii,j+ji} \cdot f_{ii,ji}
@@ -370,11 +370,11 @@ Pour l'entrainement du modèle, nous allons utiliser le dataset MNIST. Il contie
 
 \medskip
 
-Avec le code final que vous pouvez trouver sur mon repository GitHub, j'ai pu entrainer le modèle sur le dataset MNIST pendant presque 2 heures sur mon ordinateur avec une carte graphique NVIDIA GeForce GTX 1660 super. Le code a 100 epochs, c'est-à-dire qu'il va faire entrainer le modèle 100 fois sur chacune des 60'000 images en tout. Au pic de performance du modèle, il a pu atteindre une précision de 99.44\% sur le dataset de test. Cela veut dire que sur les 10'000 images de test, le modèle a pu correctement reconnaitre 9'944 images et s'est trompé sur uniquement 56 images.
+Avec le code final que vous pouvez trouver sur mon repository GitHub, j'ai pu entrainer le modèle sur le dataset MNIST pendant presque 2 heures sur mon ordinateur avec une carte graphique NVIDIA GeForce GTX 1660 SUPER. Le code a 100 epochs, c'est-à-dire qu'il va faire entrainer le modèle 100 fois sur chacune des 60'000 images en tout. Au pic de performance du modèle, il a pu atteindre une précision de 99.44\% sur le dataset de test. Cela veut dire que sur les 10'000 images de test, le modèle a pu correctement reconnaitre 9'944 images et s'est trompé uniquement sur 56 images.
 
 \subsection{Moteur d'inférence en C}
 
-Le désavantage du CUDA est qu'il ne fonctionne que sur un ordinateur muni d'une carte graphique NVIDIA. C'est pour cela que j'ai également écrit le code pour l'inférence du modèle en C qui peut lui être exécuté sur à peu près n'importe quel ordinateur. Le code est majoritairement composé de copiés-collés du code CUDA avec quelques différences. La vitesse du modèle n'est pas un problème ici, car l'inférence d'un modèle requiert beaucoup moins de calculs que l'entrainement étant donné que l'entrainement requiert également de faire la backpropagation et ce sur $100 \cdot 60'000 = 6'000'000$ images. Le code C pour l'inférence du modèle est également disponible sur mon repository GitHub.
+Le désavantage du CUDA est qu'il ne fonctionne que sur un ordinateur muni d'une carte graphique NVIDIA. C'est pour cela que j'ai également écrit le code pour l'inférence du modèle en C qui peut lui être exécuté sur à peu près n'importe quel ordinateur. Le code est majoritairement composé de copier-coller du code CUDA avec quelques différences. La vitesse du modèle n'est pas un problème ici, car l'inférence d'un modèle requiert beaucoup moins de calculs que l'entrainement étant donné que l'entrainement requiert également de faire la backpropagation et ce, sur $100 \cdot 60'000 = 6'000'000$ images. Le code C pour l'inférence du modèle est également disponible sur mon repository GitHub.
 
 \subsection{Interface utilisateur}
 
@@ -385,7 +385,7 @@ En conclusion, j'ai pu implémenter avec succès ce réseau de neurones convolut
 
 \section{Bibliographie}
 
-Pour l'éllaboration de ce TM, j'ai majoritairement utilisé mes propres connaissances. Cependant, j'ai également du acquérir de nouvelles connaissances à l'aide des sites suivants :
+Pour l'élaboration de ce TM, j'ai majoritairement utilisé mes propres connaissances. Cependant, j'ai également dû acquérir de nouvelles connaissances à l'aide des sites suivants :
 
 
 \begin{itemize}
@@ -393,7 +393,7 @@ Pour l'éllaboration de ce TM, j'ai majoritairement utilisé mes propres connais
   \item \href{https://www.youtube.com/watch?v=HGwBXDKFk9I}{CNNs - StatQuest : https://www.youtube.com/watch?v=HGwBXDKFk9I}
   \item \href{https://www.youtube.com/watch?v=oGpzWAlP5p0}{MIT 6.S191 - Convolutional Neural Networks : https://www.youtube.com/watch?v=oGpzWAlP5p0}
   \item \href{https://docs.pytorch.org/docs/stable/generated/torch.nn.Dropout.html}{Dropout - PyTorch : https://docs.pytorch.org/docs/stable/generated/torch.nn.Dropout.html}
-  \item \href{https://www.geeksforgeeks.org/deep-learning/kaiming-initialization-in-deep-learning/}{Kaiming Initialization - Geekforgeeks : https://www.geeksforgeeks.org/deep-learning/kaiming-initialization-in-deep-learning/}
+  \item \href{https://www.geeksforgeeks.org/deep-learning/kaiming-initialization-in-deep-learning/}{Kaiming Initialization - GeeksforGeeks : https://www.geeksforgeeks.org/deep-learning/kaiming-initialization-in-deep-learning/}
 \end{itemize}
 
 \end{document}
