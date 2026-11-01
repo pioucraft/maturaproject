@@ -34,8 +34,7 @@ Troisième année de maturité
 \newpage
 
 \begin{abstract}
-
-Les réseaux de neurones convolutifs (CNN) sont très utilisés de nos jours pour la reconnaissance d'images. Nous allons en implémenter un en utilisant les langages C et CUDA. Il aura pour but de lire un chiffre manuscrit et sera entrainé sur le dataset MNIST, en utilisant une carte graphique NVIDIA. À la fin, nous obtiendrons un modèle capable de lire un chiffre manuscrit avec une précision atteignant 99.44\%.
+Les réseaux de neurones convolutifs (CNN) sont très utilisés de nos jours pour la reconnaissance d'images. Nous allons en implémenter un en utilisant uniquement les langages C et CUDA et aucunes librairies externes. Il aura pour but de lire un chiffre manuscrit et sera entrainé sur le dataset MNIST, en utilisant une carte graphique NVIDIA. Après avoir entrainé notre modèle avec 60'000 images différentes sur 100 époques, il sera capable de lire un chiffre manuscrit avec une précision atteignant 99.44\%. Le langage CUDA sera utilisé pour l'entrainement du modèle, car il permet d'exploiter la puissance des cartes graphiques NVIDIA et le langage C sera utilisé pour l'inférence du modèle, car il est plus portable et peut être exécuté sur à peu près n'importe quel ordinateur.
 
 \end{abstract}
 
@@ -383,7 +382,7 @@ Le désavantage du CUDA est qu'il ne fonctionne que sur un ordinateur muni d'une
 J'ai également écrit une interface utilisateur en HTML et JavaScript qui permet de dessiner un chiffre manuscrit sur un canvas et de l'envoyer au modèle pour qu'il le reconnaisse. Elle est également disponible sur mon repository GitHub.
 
 \section{Conclusion}
-En conclusion, j'ai pu implémenter avec succès ce réseau de neurones convolutif. Il m'a permis d'approfondir mes connaissances dans le domaine du machine learning après avoir fait mes premiers pas un an auparavant en implémentant un simple MLP sur la même tâche de reconnaissance d'image. Je pense d'ailleurs que j'aurais implémenté cette architecture dans mon temps libre même s'il ne s'agissait pas de mon TM, car j'ai même plus récemment implémenté l'architecture de Transformer, qui est l'architecture phare derrière les modèles de langage tels que ChatGPT ou Claude.
+En conclusion, j'ai pu implémenter avec succès ce réseau de neurones convolutif. Il m'a permis d'approfondir mes connaissances dans le domaine du machine learning après avoir fait mes premiers pas un an auparavant en implémentant un simple MLP sur la même tâche de reconnaissance d'image. Je pense d'ailleurs que j'aurais implémenté cette architecture dans mon temps libre même s'il ne s'agissait pas de mon TM, car j'ai même plus récemment implémenté l'architecture de Transformer, qui est l'architecture phare derrière les modèles de langage tels que ChatGPT ou Claude. Le code complet de ce TM est disponible sur mon repository GitHub : \href{https://github.com/pioucraft/maturaproject}{https://github.com/pioucraft/maturaproject}.
 
 \section{Bibliographie}
 
